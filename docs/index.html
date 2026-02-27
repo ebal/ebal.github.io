@@ -3,35 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Blog</title>
+    <title>Posts Index</title>
     <style>
+        :root {
+            --honeydew: #e0f2e9;
+            --almond-silk: #ceb5a7;
+            --dusty-taupe: #a17c6b;
+            --deep-teal: #5b7b7a;
+            --dark-cyan: #3c887e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 700px;
-            margin: 50px auto;
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
             line-height: 1.6;
-            padding: 0 20px;
+            color: var(--deep-teal);
+            background:
+                radial-gradient(circle at top right, rgba(60, 136, 126, 0.24), transparent 35%),
+                linear-gradient(135deg, var(--honeydew), var(--almond-silk), var(--dusty-taupe));
+            display: grid;
+            place-items: center;
+            padding: 2rem 1rem;
         }
+
+        .container {
+            width: min(920px, 100%);
+            background: rgba(224, 242, 233, 0.76);
+            border: 2px solid rgba(91, 123, 122, 0.35);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 22px 50px rgba(60, 136, 126, 0.2);
+        }
+
         h1 {
+            margin: 0 0 0.3rem;
             text-align: center;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            color: var(--dark-cyan);
+            letter-spacing: 0.04em;
         }
-        a {
-            color: #0366d6;
-            text-decoration: none;
+
+        .subtitle {
+            text-align: center;
+            margin: 0 0 1.75rem;
+            color: var(--deep-teal);
         }
-        a:hover {
-            text-decoration: underline;
+
+        .posts {
+            display: grid;
+            gap: 0.9rem;
         }
+
         .post {
-            margin-bottom: 30px;
+            display: block;
+            background: linear-gradient(120deg, rgba(224, 242, 233, 0.9), rgba(206, 181, 167, 0.9));
+            border: 1px solid rgba(91, 123, 122, 0.35);
+            border-radius: 12px;
+            padding: 0.95rem 1rem;
+            text-decoration: none;
+            color: var(--deep-teal);
+            transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+        }
+
+        .post:hover {
+            transform: translateY(-2px);
+            border-color: var(--dark-cyan);
+            box-shadow: 0 10px 16px rgba(60, 136, 126, 0.18);
+        }
+
+        .post-title {
+            margin: 0;
+            color: var(--dark-cyan);
+            font-size: 1.08rem;
+            word-break: break-word;
+        }
+
+        .post-path {
+            margin: 0.22rem 0 0;
+            font-size: 0.9rem;
+            color: var(--dusty-taupe);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.35rem 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to My Blog</h1>
-    <div class="post">
-        <h2><a href="homebrew.md">My First Blog Post: Homebrew</a></h2>
-        <p>A short intro or excerpt about your post can go here.</p>
+    <div class="container">
+        <h1>All Posts</h1>
+        <p class="subtitle">Auto-index of every HTML post in this directory.</p>
+
+        <div class="posts">
+            <a class="post" href="CalDav_and_CardDav_in_Apple.html">
+                <h2 class="post-title">CalDav and CardDav in Apple</h2>
+                <p class="post-path">CalDav_and_CardDav_in_Apple.html</p>
+            </a>
+
+            <a class="post" href="headphone-comparison-q30-vs-es850nb.html">
+                <h2 class="post-title">Headphone Comparison: Q30 vs ES850NB</h2>
+                <p class="post-path">headphone-comparison-q30-vs-es850nb.html</p>
+            </a>
+
+            <a class="post" href="homebrew.html">
+                <h2 class="post-title">Homebrew</h2>
+                <p class="post-path">homebrew.html</p>
+            </a>
+        </div>
     </div>
 </body>
 </html>

@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Headphone Showdown: Soundcore Life Q30 vs Edifier ES850NB</title>
+<style>
+  :root {
+    --q30: #C0392B;
+    --q30-light: #e74c3c;
+    --q30-pale: #fde8e6;
+    --edifier: #1A5276;
+    --edifier-light: #2980b9;
+    --edifier-pale: #e6f0f9;
+    --neutral: #2C3E50;
+    --bg: #F5F0EB;
+    --bg-dark: #1a1612;
+    --paper: #FEFCF8;
+    --ink: #1C1410;
+    --muted: #7F8C8D;
+    --border: #D5C9BC;
+    --gold: #B8860B;
+    --gold-light: #DAA520;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Verdana', Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg-dark);
+    color: #F5F0EB;
+    padding: 60px 40px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(255,255,255,0.015) 60px, rgba(255,255,255,0.015) 61px),
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.015) 60px, rgba(255,255,255,0.015) 61px);
+  }
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-family: 'verdana Display', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 900;
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+  .header h1 .vs {
+    color: var(--gold-light);
+    font-style: italic;
+  }
+  .header-sub {
+    font-size: 15px;
+    color: rgba(245,240,235,0.65);
+    font-style: italic;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+  .contenders {
+    display: flex;
+    gap: 40px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+  .contender-pill {
+    padding: 8px 20px;
+    border-radius: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+  .pill-q30 { background: var(--q30); color: white; }
+  .pill-edifier { background: var(--edifier); color: white; }
+
+  /* MAIN CONTENT */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 50px 40px;
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 30px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+  }
+
+  /* OVERVIEW CARDS */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 60px;
+  }
+  .overview-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .overview-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .card-q30::before { background: var(--q30); }
+  .card-edifier::before { background: var(--edifier); }
+  .card-brand {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .card-brand-q30 { color: var(--q30); }
+  .card-brand-edifier { color: var(--edifier); }
+  .card-model {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .card-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .card-price-q30 { color: var(--q30); }
+  .card-price-edifier { color: var(--edifier); }
+  .card-verdict {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #3D3530;
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  /* KEY SPECS */
+  .specs-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+  }
+  .spec-item {
+    flex: 1;
+    min-width: 120px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .spec-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .spec-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .sv-q30 { color: var(--q30); }
+  .sv-edifier { color: var(--edifier); }
+  .spec-sep { color: var(--border); font-family: 'DM Mono', monospace; font-size: 11px; }
+
+  /* MATRIX TABLE */
+  .table-wrap {
+    overflow-x: auto;
+    margin-bottom: 60px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    padding: 16px 20px;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--ink);
+  }
+  thead th:first-child { color: var(--muted); width: 22%; }
+  thead th:nth-child(2) { color: var(--muted); width: 8%; }
+  thead th:nth-child(3) { background: var(--q30-pale); color: var(--q30); width: 23%; }
+  thead th:nth-child(4) { background: var(--edifier-pale); color: var(--edifier); width: 23%; }
+  thead th:last-child { color: var(--muted); width: 24%; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(184,134,11,0.04); }
+
+  .cat-header td {
+    background: var(--ink);
+    color: var(--bg);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    font-weight: 500;
+  }
+
+  td {
+    padding: 14px 20px;
+    vertical-align: top;
+    line-height: 1.55;
+  }
+  td:first-child {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--neutral);
+  }
+  .weight-col {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .q30-col { background: rgba(192,57,43,0.03); }
+  .edifier-col { background: rgba(26,82,118,0.03); }
+  .winner-col {
+    font-size: 12px;
+    color: var(--neutral);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-q30 { background: var(--q30); color: white; }
+  .badge-edifier { background: var(--edifier); color: white; }
+  .badge-tie { background: var(--gold); color: white; }
+  .badge-dep { background: #6C7A89; color: white; }
+
+  .star { color: var(--gold-light); margin-right: 2px; }
+  .detail { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 3px; }
+
+  /* USE CASE SECTION */
+  .usecase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 60px;
+  }
+  .usecase-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 22px;
+    position: relative;
+  }
+  .usecase-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .usecase-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .usecase-winner-bar {
+    height: 3px;
+    margin-bottom: 12px;
+    border-radius: 2px;
+  }
+  .bar-q30 { background: var(--q30); }
+  .bar-edifier { background: var(--edifier); }
+  .bar-tie { background: var(--gold); }
+  .usecase-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #3D3530;
+  }
+  .usecase-winner-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 12px;
+    font-weight: 500;
+  }
+  .wl-q30 { color: var(--q30); }
+  .wl-edifier { color: var(--edifier); }
+  .wl-tie { color: var(--gold); }
+
+  /* VERDICT */
+  .verdict-section {
+    background: var(--bg-dark);
+    color: #F5F0EB;
+    padding: 50px 40px;
+    margin: 0 -40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .verdict-section::after {
+    content: '"';
+    position: absolute;
+    right: 40px;
+    top: -20px;
+    font-family: 'Playfair Display', serif;
+    font-size: 280px;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .verdict-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 30px;
+  }
+  .verdict-box {
+    border-top: 3px solid;
+    padding-top: 20px;
+  }
+  .verdict-box-q30 { border-color: var(--q30-light); }
+  .verdict-box-edifier { border-color: var(--edifier-light); }
+  .verdict-box h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .verdict-box .price-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    margin-bottom: 14px;
+    opacity: 0.7;
+  }
+  .verdict-box p {
+    font-size: 14px;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+  .verdict-box ul {
+    list-style: none;
+    margin-top: 14px;
+  }
+  .verdict-box ul li {
+    font-size: 13px;
+    padding: 4px 0;
+    opacity: 0.8;
+    padding-left: 18px;
+    position: relative;
+  }
+  .verdict-box ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    opacity: 0.5;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* SCORE BARS */
+  .scores-section {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    padding: 32px;
+    margin-bottom: 60px;
+  }
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .score-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--neutral);
+    width: 160px;
+    flex-shrink: 0;
+  }
+  .score-bars {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .score-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.6s ease;
+  }
+  .fill-q30 { background: var(--q30); }
+  .fill-edifier { background: var(--edifier); }
+  .score-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    width: 30px;
+    text-align: right;
+  }
+  .score-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    width: 60px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .score-tag-q30 { color: var(--q30); }
+  .score-tag-edifier { color: var(--edifier); }
+  .legend {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--neutral);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 30px 40px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 700px) {
+    .main { padding: 30px 20px; }
+    .overview-grid, .verdict-grid { grid-template-columns: 1fr; }
+    .verdict-section { margin: 0 -20px; padding: 40px 24px; }
+    .header { padding: 40px 20px 36px; }
+    .spec-val { flex-direction: column; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="eyebrow">▸ Audiophile Comparison Report · February 2026</div>
+    <h1>Soundcore Life Q30<br><span class="vs">vs.</span> Edifier ES850NB</h1>
+    <p class="header-sub">A thorough audiophile-grade feature matrix and use-case breakdown for two of the most talked-about budget-to-mid-range ANC headphones on the market.</p>
+    <div class="contenders">
+      <span class="contender-pill pill-q30">Soundcore Life Q30 — ~$60 USD</span>
+      <span class="contender-pill pill-edifier">Edifier ES850NB — ~$149 USD</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- OVERVIEW -->
+  <div class="section-header">
+    <span class="section-number">01 —</span>
+    <h2 class="section-title">At a Glance</h2>
+  </div>
+  <div class="overview-grid">
+    <div class="overview-card card-q30">
+      <div class="card-brand card-brand-q30">▸ Soundcore by Anker</div>
+      <div class="card-model">Life Q30</div>
+      <div class="card-price card-price-q30">~$60 USD</div>
+      <div class="card-verdict">The budget king. Packs hybrid ANC with three modes, a 40+ hour battery, fast charging, and a robust companion app into a shockingly affordable package. Sound is heavily consumer-tuned with elevated bass but highly correctable via EQ. The undisputed best-value ANC headphone in its class.</div>
+    </div>
+    <div class="overview-card card-edifier">
+      <div class="card-brand card-brand-edifier">▸ Edifier</div>
+      <div class="card-model">ES850NB</div>
+      <div class="card-price card-price-edifier">~$149 USD</div>
+      <div class="card-verdict">The mid-range overachiever. LDAC support, titanium-coated 40mm drivers, Hi-Res Audio (wired & wireless) certification, an extraordinary 92-hour battery, and up to -45dB ANC. Punches confidently above its price bracket and challenges headphones costing twice as much.</div>
+    </div>
+  </div>
+
+  <!-- KEY SPECS STRIP -->
+  <div class="specs-row">
+    <div class="spec-item">
+      <div class="spec-label">Driver Size</div>
+      <div class="spec-val"><span class="sv-q30">40mm</span><span class="spec-sep">/</span><span class="sv-edifier">40mm</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Diaphragm</div>
+      <div class="spec-val"><span class="sv-q30">Silk</span><span class="spec-sep">/</span><span class="sv-edifier">Titanium</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Bluetooth</div>
+      <div class="spec-val"><span class="sv-q30">5.0</span><span class="spec-sep">/</span><span class="sv-edifier">5.4</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Codecs</div>
+      <div class="spec-val"><span class="sv-q30">SBC·AAC</span><span class="spec-sep">/</span><span class="sv-edifier">SBC·AAC·LDAC</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Battery (ANC off)</div>
+      <div class="spec-val"><span class="sv-q30">60h</span><span class="spec-sep">/</span><span class="sv-edifier">92h</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">ANC Depth</div>
+      <div class="spec-val"><span class="sv-q30">~40dB</span><span class="spec-sep">/</span><span class="sv-edifier">-45dB</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Weight</div>
+      <div class="spec-val"><span class="sv-q30">263g</span><span class="spec-sep">/</span><span class="sv-edifier">265g</span></div>
+    </div>
+    <div class="spec-item">
+      <div class="spec-label">Hi-Res Wireless</div>
+      <div class="spec-val"><span class="sv-q30">No</span><span class="spec-sep">/</span><span class="sv-edifier">Yes</span></div>
+    </div>
+  </div>
+
+  <!-- SCORE OVERVIEW -->
+  <div class="section-header">
+    <span class="section-number">02 —</span>
+    <h2 class="section-title">Performance Ratings (out of 10)</h2>
+  </div>
+  <div class="scores-section">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--q30)"></div>Soundcore Life Q30</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--edifier)"></div>Edifier ES850NB</div>
+    </div>
+    <!-- Score rows -->
+    <div class="score-row">
+      <div class="score-label">Sound Quality</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:68%"></div></div><div class="score-val" style="color:var(--q30)">6.8</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:84%"></div></div><div class="score-val" style="color:var(--edifier)">8.4</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">ANC Strength</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:75%"></div></div><div class="score-val" style="color:var(--q30)">7.5</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:87%"></div></div><div class="score-val" style="color:var(--edifier)">8.7</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">Battery Life</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:82%"></div></div><div class="score-val" style="color:var(--q30)">8.2</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:97%"></div></div><div class="score-val" style="color:var(--edifier)">9.7</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">Comfort</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:76%"></div></div><div class="score-val" style="color:var(--q30)">7.6</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:88%"></div></div><div class="score-val" style="color:var(--edifier)">8.8</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">App & EQ Control</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:90%"></div></div><div class="score-val" style="color:var(--q30)">9.0</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:72%"></div></div><div class="score-val" style="color:var(--edifier)">7.2</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">Value for Money</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:95%"></div></div><div class="score-val" style="color:var(--q30)">9.5</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:87%"></div></div><div class="score-val" style="color:var(--edifier)">8.7</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">Codec Quality</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:60%"></div></div><div class="score-val" style="color:var(--q30)">6.0</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:92%"></div></div><div class="score-val" style="color:var(--edifier)">9.2</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+    <div class="score-row">
+      <div class="score-label">Build / Durability</div>
+      <div class="score-bars">
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-q30" style="width:73%"></div></div><div class="score-val" style="color:var(--q30)">7.3</div><div class="score-tag score-tag-q30">Q30</div></div>
+        <div class="score-bar-wrap"><div class="score-bar-track"><div class="score-bar-fill fill-edifier" style="width:82%"></div></div><div class="score-val" style="color:var(--edifier)">8.2</div><div class="score-tag score-tag-edifier">ES850NB</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIX TABLE -->
+  <div class="section-header">
+    <span class="section-number">03 —</span>
+    <h2 class="section-title">Full Feature Matrix</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature / Category</th>
+          <th>Weight</th>
+          <th>Soundcore Life Q30</th>
+          <th>Edifier ES850NB</th>
+          <th>Winner &amp; Rationale</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- AUDIO QUALITY -->
+        <tr class="cat-header"><td colspan="5">▸ Audio Quality</td></tr>
+        <tr>
+          <td>Driver Technology</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">40mm silk diaphragm dynamic driver; flexible material, warm/soft response. Hi-Res badge on box but limited by codec ceiling.
+            <div class="detail">Reproduces up to 40kHz</div>
+          </td>
+          <td class="edifier-col">40mm titanium-coated composite diaphragm; stiffer, faster transient response, better detail retrieval.
+            <div class="detail">True Hi-Res Audio &amp; Hi-Res Wireless certified</div>
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>Titanium coating provides superior rigidity, faster transients, and cleaner high-frequency extension.</td>
+        </tr>
+        <tr>
+          <td>Frequency Response Accuracy</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">V-shaped / consumer tuning out-of-box. Heavy sub-bass emphasis, slightly recessed mids. Muddy bass at default with fast kick drums.
+          </td>
+          <td class="edifier-col">Warm and balanced tuning; controlled bass with satisfying weight, forward mids, smooth non-fatiguing treble. No harsh sibilance.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>More natural, balanced tuning stock. Q30 requires EQ to achieve balance.</td>
+        </tr>
+        <tr>
+          <td>Soundstage &amp; Imaging</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Wide soundstage for price; good channel separation. Imaging not highly precise.
+          </td>
+          <td class="edifier-col">Adequate soundstage; somewhat consumer-generic in positioning. Not aimed at analytical listening.
+          </td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both lack the expansive staging of flagships. Q30's width is surprising for cost; ES850NB edges in resolution.</td>
+        </tr>
+        <tr>
+          <td>Bass Quality</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Heavy mid-bass emphasis, bleeds into mids at default. Tighter with EQ but still struggles on fast genres (metal, drum 'n' bass).
+          </td>
+          <td class="edifier-col">Punchy, controlled bass with good sub-bass extension. Mid-bass is defined without overwhelming the mids.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>ES850NB's bass is more articulate and controlled out of the box.</td>
+        </tr>
+        <tr>
+          <td>Treble / Detail Retrieval</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">Decent treble extension to 40kHz spec, but codec limitations (SBC/AAC) cap real-world detail. Can sound slightly compressed on busy tracks.
+          </td>
+          <td class="edifier-col">Sharp, sparkly highs via LDAC. Can lean bright at high volumes. Excellent detail for the price; truly shines with LDAC source.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>LDAC delivers markedly more high-frequency air and micro-detail.</td>
+        </tr>
+        <tr>
+          <td>EQ / Sound Customization</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">8-band custom EQ + 22+ presets in Soundcore app; EQ settings saved on headphone. Excellent granularity. Can tune close to Harman target.
+          </td>
+          <td class="edifier-col">4-band EQ + limited presets in Edifier ConneX app. Lacks fine-grained control for audiophile tuning. Presets useful but not surgical.
+          </td>
+          <td class="winner-col"><span class="badge badge-q30">Q30 Wins</span><br><br>8-band EQ with saveable presets is dramatically more versatile for audiophile tuning.</td>
+        </tr>
+
+        <!-- CODEC & CONNECTIVITY -->
+        <tr class="cat-header"><td colspan="5">▸ Codec &amp; Connectivity</td></tr>
+        <tr>
+          <td>Bluetooth Codec Support</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">SBC, AAC only. No aptX, no LDAC. AAC sounds good on Apple; SBC on Windows is slightly compressed.
+          </td>
+          <td class="edifier-col">SBC, AAC, <strong>LDAC</strong> (up to 990kbps). 3× the data of standard BT. Hi-Res Wireless certified.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>LDAC is a game-changing advantage for audiophiles. No contest.</td>
+        </tr>
+        <tr>
+          <td>Bluetooth Version</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">Bluetooth 5.0</td>
+          <td class="edifier-col">Bluetooth 5.4 (newer spec, improved stability, lower power)</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>BT 5.4 offers marginally better range and efficiency.</td>
+        </tr>
+        <tr>
+          <td>Multipoint (Dual Device)</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Yes — connect to 2 devices simultaneously.</td>
+          <td class="edifier-col">Yes — connect to 2 devices simultaneously.</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both support multipoint pairing effectively.</td>
+        </tr>
+        <tr>
+          <td>Wired / AUX Connection</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">3.5mm AUX cable included (50-inch). ANC not compatible in wired mode. Older firmware supports wired + ANC; newer units lost this.</td>
+          <td class="edifier-col">Wired mode available. Hi-Res Audio also certified for wired playback — a genuine advantage for DAC/amp users.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>Hi-Res certification wired is a meaningful audiophile plus.</td>
+        </tr>
+
+        <!-- ANC PERFORMANCE -->
+        <tr class="cat-header"><td colspan="5">▸ Active Noise Cancellation</td></tr>
+        <tr>
+          <td>ANC Technology</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">Hybrid ANC — dual microphones (inner + outer). Blocks up to ~40dB. Filters ~75% of ambient noise at practical listening levels.
+          </td>
+          <td class="edifier-col">Hybrid ANC — up to -45dB attenuation. Smoother at low-frequency hum. Outperforms many mid-range competitors.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>-45dB vs ~40dB, plus better practical low-frequency handling in commute environments.</td>
+        </tr>
+        <tr>
+          <td>ANC Modes</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">3 environment-specific modes: Transport, Outdoor, Indoor. Each tuned for different noise frequencies. Most useful: Transport.
+          </td>
+          <td class="edifier-col">Adjustable ANC levels + ambient mode. App-customizable which modes the ANC button cycles through. Less granular environment specificity.
+          </td>
+          <td class="winner-col"><span class="badge badge-q30">Q30 Wins</span><br><br>Three contextual ANC modes (Transport/Outdoor/Indoor) are more practical for travelers.</td>
+        </tr>
+        <tr>
+          <td>Transparency / Ambient Mode</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Yes — palm-over gesture on right cup activates transparency instantly. Amplifies high-frequency ambient sound.</td>
+          <td class="edifier-col">Yes — Touch-to-Chat hold on right cup pauses audio and opens ambient. Slight delay but reliable. Customizable sensitivity.
+          </td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both offer gesture-based transparency. Q30 slightly faster; ES850NB offers sensitivity tuning.</td>
+        </tr>
+
+        <!-- BATTERY & CHARGING -->
+        <tr class="cat-header"><td colspan="5">▸ Battery &amp; Charging</td></tr>
+        <tr>
+          <td>Battery Life (ANC Off)</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">60 hours rated; real-world tests hit 46–64 hours. Excellent longevity.
+          </td>
+          <td class="edifier-col">92 hours rated. Extraordinary — a week+ of daily use before needing a charge. Note: LDAC reduces this significantly.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>92h vs 60h is not close. ES850NB's stamina is exceptional even in the premium category.</td>
+        </tr>
+        <tr>
+          <td>Battery Life (ANC On)</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">40 hours rated (some tests ~32h ANC-only). Still impressive.</td>
+          <td class="edifier-col">53 hours rated with ANC active. Best-in-class for this price tier.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>53h ANC vs 40h — ES850NB wins decisively in this key metric.</td>
+        </tr>
+        <tr>
+          <td>Fast Charging</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">5 minutes → 4 hours playback. Full charge ~1h 45m via USB-C.</td>
+          <td class="edifier-col">15 minutes → 11.5 hours playback. Full charge time comparable.</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>15 min for 11.5 hours is a stronger fast-charge ratio than Q30's 5 min for 4 hours.</td>
+        </tr>
+        <tr>
+          <td>Charging Port</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">USB-C ✓</td>
+          <td class="edifier-col">USB-C ✓</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both use USB-C.</td>
+        </tr>
+
+        <!-- COMFORT & DESIGN -->
+        <tr class="cat-header"><td colspan="5">▸ Comfort, Build &amp; Design</td></tr>
+        <tr>
+          <td>Weight</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">263g — lightweight for over-ear ANC</td>
+          <td class="edifier-col">265g — virtually identical in weight</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>2g difference is negligible.</td>
+        </tr>
+        <tr>
+          <td>Ear Pad Comfort</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">Protein leather + memory foam. Oval-shaped; may contact ear for larger ears. Earpads can deflate with extended use (reported).
+          </td>
+          <td class="edifier-col">Plush leather-like large ear cups; accommodate larger ears without driver contact. Longer lasting padding reported by reviewers.
+          </td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>Larger cups, better long-term pad durability, fewer fit complaints.</td>
+        </tr>
+        <tr>
+          <td>Headband Padding</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Adequate headband padding; primarily plastic with aluminum frame insert at top.</td>
+          <td class="edifier-col">Generous headband padding; weight distributed evenly across crown. Premium-feeling.</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>More substantial headband padding for all-day sessions.</td>
+        </tr>
+        <tr>
+          <td>Build Material</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Mostly plastic; aluminum headband rail. Feels premium for price. Stiff carrying case included.</td>
+          <td class="edifier-col">Matte plastic with faux-leather accents. Reassuringly solid; feels more expensive than it is. Hard case included.</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>Overall premium feel edges Q30 though both are plastic-forward.</td>
+        </tr>
+        <tr>
+          <td>Foldable Design</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">Yes — earcups fold and swivel flat</td>
+          <td class="edifier-col">Yes — fully collapsible, compact in case</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both fold; both include hard-shell travel cases.</td>
+        </tr>
+        <tr>
+          <td>Aesthetic / Color Options</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">Black, Blue, Pink, Multi. Utilitarian look; somewhat dated styling.</td>
+          <td class="edifier-col">Black, Brown, Ivory, Pink. Distinctive, understated aesthetic — especially the brown "vintage-elegant" colorway.</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>More refined, premium visual identity; brown colorway is genuinely distinctive.</td>
+        </tr>
+        <tr>
+          <td>IP / Water Resistance</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">No official IP rating. Tolerate light sweat but avoid heavy rain/gym use.</td>
+          <td class="edifier-col">No official IP rating. Similar real-world resilience.</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Neither is rated for water/sweat. Both suit light commuter conditions only.</td>
+        </tr>
+
+        <!-- CONTROLS & APP -->
+        <tr class="cat-header"><td colspan="5">▸ Controls &amp; Companion App</td></tr>
+        <tr>
+          <td>Physical Controls</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Labeled physical buttons on ear cup bottom. Clear tactile feedback. Non-remappable but logical layout.</td>
+          <td class="edifier-col">Volume rocker + multifunction button. Satisfying tactile click. Works confidently without looking.</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both offer reliable, tactile physical buttons — preferred by many over touch controls.</td>
+        </tr>
+        <tr>
+          <td>Companion App Quality</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">Soundcore app (iOS/Android): excellent. 8-band EQ, 22+ presets, ANC mode control, sleep/relaxation sounds, battery %, firmware updates, homescreen widget. Very polished.</td>
+          <td class="edifier-col">Edifier ConneX app (mobile): EQ presets + 4-band EQ, ANC control, Touch-to-Chat sensitivity, multipoint. Firmware updates <em>require</em> TempoHub desktop app — a notable inconvenience.</td>
+          <td class="winner-col"><span class="badge badge-q30">Q30 Wins</span><br><br>Soundcore app is deeper, more polished, and handles firmware updates on-phone. ES850NB's firmware requirement for desktop is a real friction point.</td>
+        </tr>
+        <tr>
+          <td>Touch / Gesture Controls</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">Palm-over right cup activates transparency mode (1-second hold).</td>
+          <td class="edifier-col">Touch-to-Chat on right cup pauses and activates ambient. Adjustable sensitivity.</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both have a single gesture. ES850NB's sensitivity adjustment is a small plus.</td>
+        </tr>
+
+        <!-- MICROPHONE & CALLS -->
+        <tr class="cat-header"><td colspan="5">▸ Microphone &amp; Call Quality</td></tr>
+        <tr>
+          <td>Microphone Setup</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Dual microphones (inner + outer). AI-powered call noise cancellation on newer models. Voice can sound slightly compressed outdoors.</td>
+          <td class="edifier-col">Built-in mic with call noise suppression. Clear call quality reported. Works confidently in moderate noise environments.</td>
+          <td class="winner-col"><span class="badge badge-tie">Tie</span><br><br>Both deliver acceptable call quality for their price tier. Neither rivals premium call-focused headphones.</td>
+        </tr>
+
+        <!-- PORTABILITY -->
+        <tr class="cat-header"><td colspan="5">▸ Portability &amp; Travel</td></tr>
+        <tr>
+          <td>Carrying Case</td>
+          <td class="weight-col">Med</td>
+          <td class="q30-col">Hard-shell case included. Compact, protective, reminiscent of Bose case styling.</td>
+          <td class="edifier-col">Rigid hard-shell case with Edifier logo embossed. Ergonomic internal shape; one of the better cases at this price.</td>
+          <td class="winner-col"><span class="badge badge-edifier">Edifier</span><br><br>ES850NB's case feels more premium and is specifically praised by reviewers.</td>
+        </tr>
+        <tr>
+          <td>What's in the Box</td>
+          <td class="weight-col">Low</td>
+          <td class="q30-col">Headphones, hard case, USB-A to USB-C cable, 3.5mm AUX cable, quick start guide.</td>
+          <td class="edifier-col">Headphones, hard case, USB-A to USB-C cable, user manual. No AUX cable included in all markets.</td>
+          <td class="winner-col"><span class="badge badge-q30">Q30 Wins</span><br><br>Includes the AUX cable — useful for wired use and flights.</td>
+        </tr>
+
+        <!-- VALUE -->
+        <tr class="cat-header"><td colspan="5">▸ Value &amp; Price</td></tr>
+        <tr>
+          <td>Price (USD)</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">~$60 (often on sale for $40–$50)</td>
+          <td class="edifier-col">~$149 (often on sale for $99–$120)</td>
+          <td class="winner-col"><span class="badge badge-q30">Q30 Wins</span><br><br>Dramatically more affordable.</td>
+        </tr>
+        <tr>
+          <td>Overall Value Proposition</td>
+          <td class="weight-col">High</td>
+          <td class="q30-col">Best feature-per-dollar ANC headphone in the budget class. ANC, 40h+ battery, EQ, hard case at ~$60 is extraordinary value.</td>
+          <td class="edifier-col">Premium mid-range value leader. LDAC, 92h battery, Hi-Res cert, superior ANC at $149 challenges headphones at $250–300.</td>
+          <td class="winner-col"><span class="badge badge-dep">Context-Dependent</span><br><br>Q30 wins if budget is primary. ES850NB wins if you want near-premium performance without flagship spend.</td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- USE CASES -->
+  <div class="section-header">
+    <span class="section-number">04 —</span>
+    <h2 class="section-title">Best By Use Case</h2>
+  </div>
+  <div class="usecase-grid">
+    <div class="usecase-card">
+      <div class="usecase-icon">✈️</div>
+      <div class="usecase-title">Air Travel &amp; Long Commutes</div>
+      <div class="usecase-winner-bar bar-edifier"></div>
+      <div class="usecase-text">The ES850NB's -45dB ANC shines against constant low-frequency drone of aircraft engines. Its 53h ANC battery is extraordinary — outlasting almost any long-haul trip without a charge. Compact fold + hard case also travel-friendly.</div>
+      <div class="usecase-winner-label wl-edifier">▸ Winner: Edifier ES850NB</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🏢</div>
+      <div class="usecase-title">Open-Plan Office / WFH Focus</div>
+      <div class="usecase-winner-bar bar-edifier"></div>
+      <div class="usecase-text">ES850NB's superior ANC depth handles HVAC hum and keyboard noise better. Its all-day comfort (larger cups) and 92h battery are ideal for desk workers. Q30's Indoor ANC mode is smart, but the ES850NB isolates more effectively for sustained concentration.</div>
+      <div class="usecase-winner-label wl-edifier">▸ Winner: Edifier ES850NB</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🎵</div>
+      <div class="usecase-title">Critical / Audiophile Listening</div>
+      <div class="usecase-winner-bar bar-edifier"></div>
+      <div class="usecase-text">LDAC at 990kbps on the ES850NB is the definitive advantage. Paired with a hi-res FLAC source, it delivers genuinely lossless-adjacent audio. Titanium drivers handle transients cleaner. Q30 caps at AAC quality regardless of source.</div>
+      <div class="usecase-winner-label wl-edifier">▸ Winner: Edifier ES850NB</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🎚️</div>
+      <div class="usecase-title">EQ Tuning &amp; Sound Customization</div>
+      <div class="usecase-winner-bar bar-q30"></div>
+      <div class="usecase-text">The Q30's 8-band parametric EQ with 22+ saveable presets is unmatched at any price point near $60. Power users can tune toward Harman target. The ES850NB's 4-band EQ offers limited control for audiophile dialing — a genuine frustration.</div>
+      <div class="usecase-winner-label wl-q30">▸ Winner: Soundcore Life Q30</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">💰</div>
+      <div class="usecase-title">Budget Buyer / First ANC Headphone</div>
+      <div class="usecase-winner-bar bar-q30"></div>
+      <div class="usecase-text">The Q30 is the unbeatable entry point into quality wireless ANC. At ~$60 with a hard case, solid ANC, 40h+ battery, multipoint, and EQ, it's a feat of value engineering. No other headphone in this bracket comes close.</div>
+      <div class="usecase-winner-label wl-q30">▸ Winner: Soundcore Life Q30</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">📚</div>
+      <div class="usecase-title">Podcasts, Audiobooks &amp; Vocals</div>
+      <div class="usecase-winner-bar bar-edifier"></div>
+      <div class="usecase-text">ES850NB's forward, clear mids make spoken word content feel natural and intelligible without EQ tweaking. Q30's bass-heavy default adds muddiness to male voices. ES850NB's balanced tuning just sounds right for voice content from the start.</div>
+      <div class="usecase-winner-label wl-edifier">▸ Winner: Edifier ES850NB</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🎮</div>
+      <div class="usecase-title">Casual Gaming &amp; Movies</div>
+      <div class="usecase-winner-bar bar-tie"></div>
+      <div class="usecase-text">Q30's wide soundstage and bass punch make action games satisfying. ES850NB offers better clarity for movie dialogue and cinematic scores. Neither has low-latency gaming codec (aptX LL), so both exhibit some Bluetooth lag. Tie for casual use — pick based on preference for bass vs. balance.</div>
+      <div class="usecase-winner-label wl-tie">▸ Tie (personal preference)</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🚶</div>
+      <div class="usecase-title">Daily Commute / Urban Use</div>
+      <div class="usecase-winner-bar bar-q30"></div>
+      <div class="usecase-text">Q30's Transport ANC mode is tuned for transit noise. Its quick-charge (5 min = 4 hours) is great for grab-and-go. The palm-transparency gesture helps at crossings. For those conscious of budget and subway commutes, Q30 is near-ideal.</div>
+      <div class="usecase-winner-label wl-q30">▸ Winner: Soundcore Life Q30</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">😴</div>
+      <div class="usecase-title">Sleep / Relaxation Mode</div>
+      <div class="usecase-winner-bar bar-q30"></div>
+      <div class="usecase-text">Soundcore app includes a full Sleep Mode with white noise, nature sounds, and soundscapes — a genuinely unique feature. ES850NB app has no equivalent. A small but delightful differentiator for wellness-focused users.</div>
+      <div class="usecase-winner-label wl-q30">▸ Winner: Soundcore Life Q30</div>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🔌</div>
+      <div class="usecase-title">Wired Hi-Fi / DAC Usage</div>
+      <div class="usecase-winner-bar bar-edifier"></div>
+      <div class="usecase-text">ES850NB is Hi-Res Audio certified wired — paired with a quality DAC/amp, you bypass all Bluetooth codec limitations entirely. Q30 wired performance is mediocre (mid-bass bleed, ANC must be off). Audiophiles with a desktop DAC should strongly favour the ES850NB.</div>
+      <div class="usecase-winner-label wl-edifier">▸ Winner: Edifier ES850NB</div>
+    </div>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="section-header">
+    <span class="section-number">05 —</span>
+    <h2 class="section-title">Audiophile Verdict</h2>
+  </div>
+</div>
+
+<div class="verdict-section">
+  <div class="main" style="padding-top:0; padding-bottom:0;">
+    <div class="verdict-inner">
+      <div class="eyebrow" style="color:var(--gold-light);">▸ Final Assessment</div>
+      <div class="verdict-grid">
+        <div class="verdict-box verdict-box-q30">
+          <h3>Soundcore Life Q30</h3>
+          <div class="price-tag">~$60 USD · Budget Champion</div>
+          <p>An engineering marvel for its price. If you're entering the ANC headphone world, or you're a budget-conscious buyer who doesn't want to compromise on features, nothing touches the Q30 at $60. Its secret weapon is the 8-band EQ — with 20 minutes of tuning in the app, you can get genuinely respectable sound for the money.</p>
+          <ul>
+            <li>Best for: Budget buyers, first ANC headphones, transit commuters</li>
+            <li>Best for: EQ enthusiasts who want hands-on tuning control</li>
+            <li>Best for: Frequent travelers who need ANC mode variety</li>
+            <li>Skip if: You listen to lossless audio or prioritize audio quality above all</li>
+          </ul>
+        </div>
+        <div class="verdict-box verdict-box-edifier">
+          <h3>Edifier ES850NB</h3>
+          <div class="price-tag">~$149 USD · Mid-Range Overachiever</div>
+          <p>The ES850NB is the answer to "what if I can spend a bit more?" It earns its price premium through LDAC, titanium drivers, 92-hour battery, superior comfort, and genuine Hi-Res credentials — things the Q30 simply cannot offer. It challenges headphones at $250–300 and wins on many fronts. The limited EQ is its Achilles heel for audiophiles, but the hardware foundation is excellent.</p>
+          <ul>
+            <li>Best for: Audiophiles on a budget wanting real LDAC performance</li>
+            <li>Best for: All-day office and travel users needing best-in-class battery</li>
+            <li>Best for: Hi-res source listeners (Tidal, Apple Lossless, FLAC files)</li>
+            <li>Skip if: You're on a tight budget or demand granular EQ control</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Audiophile Comparison Report · Soundcore Life Q30 vs Edifier ES850NB · February 2026<br>
+  Based on data from SoundGuys, Trusted Reviews, Prime Audio, Head-Fi, TheGamingReview, and manufacturer specifications.
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,72 @@
+<h1
+id="getting-started-with-homebrew-essential-commands-for-everyday-use">Getting
+Started with Homebrew: Essential Commands for Everyday Use</h1>
+<p>If you’re working on macOS (or Linux) and want an easy way to install
+and manage software from the command line, <strong>Homebrew</strong> is
+your best friend. It’s lightweight, powerful, and makes software
+management almost effortless.</p>
+<p>Below is a quick beginner-friendly introduction to some of the most
+commonly used <code>brew</code> commands—perfect for refreshing your
+memory or getting started as a new user.</p>
+<hr />
+<h2 id="listing-installed-packages">📦 Listing Installed Packages</h2>
+<p>Want to see which packages Homebrew has installed on your system?
+Run:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> list</span></code></pre></div>
+<p>This gives you a simple overview of everything currently managed by
+Homebrew.</p>
+<hr />
+<h2 id="keeping-homebrew-up-to-date">🔄 Keeping Homebrew Up to Date</h2>
+<p>Before installing or upgrading anything, it’s good practice to update
+Homebrew itself:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> update</span></code></pre></div>
+<p>This fetches the latest list of available formulae and casks.</p>
+<hr />
+<h2 id="upgrading-installed-packages">⬆️ Upgrading Installed
+Packages</h2>
+<p>To upgrade all outdated packages:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> upgrade</span></code></pre></div>
+<p>This updates your installed packages to their latest stable
+versions.</p>
+<hr />
+<h2 id="checking-for-outdated-packages">🕰️ Checking for Outdated
+Packages</h2>
+<p>If you simply want to know what <em>would</em> be upgraded, run:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> outdated</span></code></pre></div>
+<p>This displays all formulae and casks that have newer versions
+available.</p>
+<hr />
+<h2 id="removing-unused-dependencies">🗑️ Removing Unused
+Dependencies</h2>
+<p>Over time, unused dependencies can accumulate. Homebrew can
+automatically clean these up:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> autoremove</span></code></pre></div>
+<p>This removes formulae that are no longer needed by anything else.</p>
+<hr />
+<h2 id="deep-cleaning">🧹 Deep Cleaning</h2>
+<p>Free up disk space by removing old downloads and unnecessary
+files:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> cleanup <span class="at">-s</span></span></code></pre></div>
+<p>The <code>-s</code> flag performs a more aggressive clean, including
+clearing out cached downloads.</p>
+<hr />
+<h2 id="diagnosing-issues">🚑 Diagnosing Issues</h2>
+<p>If Homebrew is acting strangely, or you want to verify your setup,
+use:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> doctor</span></code></pre></div>
+<p>Homebrew will analyze your environment and point out any issues—or
+congratulate you with a “Your system is ready to brew.”</p>
+<hr />
+<h2 id="final-thoughts">🍺 Final Thoughts</h2>
+<p>Homebrew makes managing software on macOS and Linux both intuitive
+and efficient. With just a handful of commands, you can keep your
+development environment clean, up-to-date, and running smoothly.</p>
+<p>If you’re new to Homebrew, these commands will form the foundation of
+your daily workflow. Happy brewing!</p>

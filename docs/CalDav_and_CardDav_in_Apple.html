@@ -1,0 +1,154 @@
+<h1
+id="how-to-set-up-a-selfhosted-calendar-contacts-server-on-iphone-and-macos-using-baïkal">How
+to Set Up a Self‑Hosted Calendar &amp; Contacts Server on iPhone and
+macOS (Using Baïkal)</h1>
+<h2 id="why-selfhost">Why Self‑Host?</h2>
+<p>You want full control over your calendar and contacts—without relying
+on Google, Apple, or other cloud providers—you can
+<strong>self‑host</strong> them. This guide shows how to connect an
+<strong>iPhone</strong> or <strong>macOS</strong> device to a
+self‑hosted <strong>CalDAV</strong> (calendar) and
+<strong>CardDAV</strong> (contacts) server using
+<strong>Baïkal</strong>.</p>
+<ul>
+<li>You own your data</li>
+<li>No ads or tracking</li>
+<li>Works with Apple, Android, Linux, and Windows</li>
+<li>One server, many devices, many accounts</li>
+</ul>
+<hr />
+<h2 id="what-are-caldav-and-carddav">What Are CalDAV and CardDAV?</h2>
+<ul>
+<li><strong>CalDAV</strong>: Syncs calendars (events, reminders,
+notes)</li>
+<li><strong>CardDAV</strong>: Syncs contacts (names, phone numbers,
+emails)</li>
+</ul>
+<p>Once set up, your calendars and contacts will automatically sync
+across your devices.</p>
+<hr />
+<h2 id="what-you-need-before-you-start">What You Need Before You
+Start</h2>
+<p>Make sure the following are ready:</p>
+<ul>
+<li>A working <strong>Baïkal</strong> server (already installed)</li>
+<li>A domain name, for example:</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">https://baikal.example.org</span></span></code></pre></div>
+<ul>
+<li>A <strong>username and password</strong> created in Baïkal</li>
+<li><strong>SSL enabled</strong> (HTTPS)</li>
+<li>Port <strong>443</strong> open (this is the default HTTPS port)</li>
+</ul>
+<blockquote>
+<p>If your Baïkal web interface works in a browser using
+<code>https://</code>, you’re good to go.</p>
+</blockquote>
+<hr />
+<h2 id="important-urls-youll-need">Important URLs You’ll Need</h2>
+<p>Replace <code>&lt;username&gt;</code> with your actual Baïkal
+username.</p>
+<h3 id="carddav-contacts">CardDAV (Contacts)</h3>
+<pre><code>https://baikal.example.org/html/card.php/principals/&lt;username&gt;/</code></pre>
+<h3 id="caldav-calendar">CalDAV (Calendar)</h3>
+<pre><code>https://baikal.example.org/html/cal.php/principals/&lt;username&gt;/</code></pre>
+<hr />
+<h1 id="setting-up-on-iphone-ipad-ios">Setting Up on iPhone / iPad
+(iOS)</h1>
+<h3 id="step-1-open-settings">Step 1: Open Settings</h3>
+<ol type="1">
+<li>Go to <strong>Settings</strong></li>
+<li>Tap <strong>Contacts</strong> (for contacts) or
+<strong>Calendar</strong> (for calendars)</li>
+<li>Tap <strong>Accounts</strong></li>
+<li>Tap <strong>Add Account</strong></li>
+</ol>
+<hr />
+<h3 id="step-2-add-carddav-contacts">Step 2: Add CardDAV (Contacts)</h3>
+<ol type="1">
+<li>Tap <strong>Add Account</strong> → <strong>Other</strong></li>
+<li>Tap <strong>Add CardDAV Account</strong></li>
+</ol>
+<p>Fill in the fields:</p>
+<ul>
+<li><p><strong>Server</strong>:</p>
+<pre><code>baikal.example.org</code></pre></li>
+<li><p><strong>User Name</strong>: your Baïkal username</p></li>
+<li><p><strong>Password</strong>: your Baïkal password</p></li>
+<li><p><strong>Description</strong>:
+e.g. <code>My Contacts</code></p></li>
+</ul>
+<p>Tap <strong>Next</strong>.</p>
+<p>✅ Your contacts will now sync automatically.</p>
+<hr />
+<h3 id="step-3-add-caldav-calendar">Step 3: Add CalDAV (Calendar)</h3>
+<ol type="1">
+<li>Go back to <strong>Add Account</strong> →
+<strong>Other</strong></li>
+<li>Tap <strong>Add CalDAV Account</strong></li>
+</ol>
+<p>Fill in:</p>
+<ul>
+<li><p><strong>Server</strong>:</p>
+<pre><code>baikal.example.org</code></pre></li>
+<li><p><strong>User Name</strong>: your Baïkal username</p></li>
+<li><p><strong>Password</strong>: your Baïkal password</p></li>
+<li><p><strong>Description</strong>:
+e.g. <code>My Calendar</code></p></li>
+</ul>
+<p>Tap <strong>Next</strong>.</p>
+<p>✅ Your calendar is now connected.</p>
+<hr />
+<h1 id="setting-up-on-macos">Setting Up on macOS</h1>
+<h3 id="step-1-open-internet-accounts">Step 1: Open Internet
+Accounts</h3>
+<ol type="1">
+<li>Open <strong>System Settings</strong> (or <strong>System
+Preferences</strong>)</li>
+<li>Go to <strong>Internet Accounts</strong></li>
+<li>Click <strong>Add Account</strong></li>
+<li>Choose <strong>Other Account…</strong></li>
+</ol>
+<hr />
+<h3 id="step-2-add-carddav-contacts-1">Step 2: Add CardDAV
+(Contacts)</h3>
+<ol type="1">
+<li>Click <strong>Add CardDAV Account</strong></li>
+<li>Choose <strong>Manual</strong></li>
+</ol>
+<p>Enter the following:</p>
+<ul>
+<li><p><strong>User Name</strong>: your Baïkal username</p></li>
+<li><p><strong>Password</strong>: your Baïkal password</p></li>
+<li><p><strong>Server Address</strong>:</p>
+<pre><code>https://baikal.example.org/html/card.php/principals/&lt;username&gt;/</code></pre></li>
+</ul>
+<p>Click <strong>Sign In</strong>.</p>
+<hr />
+<h3 id="step-3-add-caldav-calendar-1">Step 3: Add CalDAV (Calendar)</h3>
+<ol type="1">
+<li>In <strong>Internet Accounts</strong>, click <strong>Add CalDAV
+Account</strong></li>
+<li>Choose <strong>Manual</strong></li>
+</ol>
+<p>Enter:</p>
+<ul>
+<li><p><strong>User Name</strong>: your Baïkal username</p></li>
+<li><p><strong>Password</strong>: your Baïkal password</p></li>
+<li><p><strong>Server Address</strong>:</p>
+<pre><code>https://baikal.example.org/html/cal.php/principals/&lt;username&gt;/</code></pre></li>
+</ul>
+<p>Click <strong>Sign In</strong>.</p>
+<hr />
+<h2 id="how-to-check-if-it-works">How to Check If It Works</h2>
+<ul>
+<li>Open the <strong>Contacts</strong> app → your contacts should
+appear</li>
+<li>Open the <strong>Calendar</strong> app → your calendars should be
+visible</li>
+<li>Create a test contact or event and check if it syncs to another
+device</li>
+</ul>
+<hr />
+<p>Happy self‑hosting 🚀</p>

@@ -1,5 +1,104 @@
-<h1
-id="how-to-set-up-a-selfhosted-calendar-contacts-server-on-iphone-and-macos-using-baïkal">How
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Set Up a Self‑Hosted Calendar & Contacts Server on iPhone and macOS (Using Baïkal)</title>
+  <style>
+    :root {
+      --c1: #9B4119;
+      --c2: #703D20;
+      --c3: #F4BEB8;
+      --c4: #6E7F45;
+      --c5: #B7B111;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+      line-height: 1.7;
+      color: #1f2328;
+      background:
+        radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
+        linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
+      padding: 2rem 1rem;
+    }
+    .page {
+      width: min(900px, 100%);
+      margin: 0 auto;
+      background: color-mix(in srgb, var(--c1) 18%, white);
+      border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
+      border-radius: 14px;
+      box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
+      padding: 2rem;
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      color: color-mix(in srgb, var(--c5) 80%, #000000);
+    }
+    a {
+      color: color-mix(in srgb, var(--c4) 85%, #000000);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    hr {
+      border: 0;
+      border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
+      margin: 2rem 0;
+    }
+    pre, code {
+      background: color-mix(in srgb, var(--c2) 16%, #ffffff);
+      border-radius: 6px;
+    }
+    pre { padding: 1rem; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
+      padding: 0.6rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: color-mix(in srgb, var(--c2) 24%, #ffffff);
+      color: color-mix(in srgb, var(--c5) 78%, #000000);
+    }
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: #333;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+    }
+    .dot {
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    @media (max-width: 700px) {
+      .page { padding: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1
+id="how-to-set-up-a-selfhosted-calendar--contacts-server-on-iphone-and-macos-using-baïkal">How
 to Set Up a Self‑Hosted Calendar &amp; Contacts Server on iPhone and
 macOS (Using Baïkal)</h1>
 <h2 id="why-selfhost">Why Self‑Host?</h2>
@@ -54,7 +153,7 @@ username.</p>
 <h3 id="caldav-calendar">CalDAV (Calendar)</h3>
 <pre><code>https://baikal.example.org/html/cal.php/principals/&lt;username&gt;/</code></pre>
 <hr />
-<h1 id="setting-up-on-iphone-ipad-ios">Setting Up on iPhone / iPad
+<h1 id="setting-up-on-iphone--ipad-ios">Setting Up on iPhone / iPad
 (iOS)</h1>
 <h3 id="step-1-open-settings">Step 1: Open Settings</h3>
 <ol type="1">
@@ -76,8 +175,8 @@ username.</p>
 <pre><code>baikal.example.org</code></pre></li>
 <li><p><strong>User Name</strong>: your Baïkal username</p></li>
 <li><p><strong>Password</strong>: your Baïkal password</p></li>
-<li><p><strong>Description</strong>:
-e.g. <code>My Contacts</code></p></li>
+<li><p><strong>Description</strong>: e.g.
+<code>My Contacts</code></p></li>
 </ul>
 <p>Tap <strong>Next</strong>.</p>
 <p>✅ Your contacts will now sync automatically.</p>
@@ -94,8 +193,8 @@ e.g. <code>My Contacts</code></p></li>
 <pre><code>baikal.example.org</code></pre></li>
 <li><p><strong>User Name</strong>: your Baïkal username</p></li>
 <li><p><strong>Password</strong>: your Baïkal password</p></li>
-<li><p><strong>Description</strong>:
-e.g. <code>My Calendar</code></p></li>
+<li><p><strong>Description</strong>: e.g.
+<code>My Calendar</code></p></li>
 </ul>
 <p>Tap <strong>Next</strong>.</p>
 <p>✅ Your calendar is now connected.</p>
@@ -152,3 +251,17 @@ device</li>
 </ul>
 <hr />
 <p>Happy self‑hosting 🚀</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#9B4119"></span>#9B4119</span>
+        <span class="swatch"><span class="dot" style="background:#703D20"></span>#703D20</span>
+        <span class="swatch"><span class="dot" style="background:#F4BEB8"></span>#F4BEB8</span>
+        <span class="swatch"><span class="dot" style="background:#6E7F45"></span>#6E7F45</span>
+        <span class="swatch"><span class="dot" style="background:#B7B111"></span>#B7B111</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

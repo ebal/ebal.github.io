@@ -224,6 +224,9 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
         <span class="swatch"><span class="dot" style="background:$c5"></span>$c5</span>
       </div>
     </section>
+    <p style="margin-top:1.4rem;">
+      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
+    </p>
   </main>
 </body>
 </html>

@@ -6,11 +6,11 @@
   <title>Soundcore Life Q30 vs. Edifier ES850NB</title>
   <style>
     :root {
-      --c1: #FC78EE;
-      --c2: #B0FFFD;
-      --c3: #609F70;
-      --c4: #006530;
-      --c5: #A86BDC;
+      --c1: #1E514C;
+      --c2: #C369DD;
+      --c3: #4B1FF8;
+      --c4: #276950;
+      --c5: #9BF3A0;
     }
     * { box-sizing: border-box; }
     body {
@@ -90,12 +90,36 @@
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.15);
     }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
     @media (max-width: 700px) {
       .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="back-home" href="index.html">Back to all posts</a>
   <main class="page">
     <p>▸ Audiophile Comparison Report · February 2026</p>
 <h1 id="soundcore-life-q30-vs-edifier-es850nb">Soundcore Life Q30 vs.
@@ -743,16 +767,13 @@ TheGamingReview, and manufacturer specifications.</p>
     <section aria-label="Generated color palette">
       <h3>Generated Palette</h3>
       <div class="palette">
-        <span class="swatch"><span class="dot" style="background:#FC78EE"></span>#FC78EE</span>
-        <span class="swatch"><span class="dot" style="background:#B0FFFD"></span>#B0FFFD</span>
-        <span class="swatch"><span class="dot" style="background:#609F70"></span>#609F70</span>
-        <span class="swatch"><span class="dot" style="background:#006530"></span>#006530</span>
-        <span class="swatch"><span class="dot" style="background:#A86BDC"></span>#A86BDC</span>
+        <span class="swatch"><span class="dot" style="background:#1E514C"></span>#1E514C</span>
+        <span class="swatch"><span class="dot" style="background:#C369DD"></span>#C369DD</span>
+        <span class="swatch"><span class="dot" style="background:#4B1FF8"></span>#4B1FF8</span>
+        <span class="swatch"><span class="dot" style="background:#276950"></span>#276950</span>
+        <span class="swatch"><span class="dot" style="background:#9BF3A0"></span>#9BF3A0</span>
       </div>
     </section>
-    <p style="margin-top:1.4rem;">
-      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
-    </p>
   </main>
 </body>
 </html>

@@ -6,11 +6,11 @@
   <title>Getting Started with Homebrew: Essential Commands for Everyday Use</title>
   <style>
     :root {
-      --c1: #459E68;
-      --c2: #467619;
-      --c3: #F5AA01;
-      --c4: #4D1EC6;
-      --c5: #B78CD6;
+      --c1: #E82850;
+      --c2: #FFAAC8;
+      --c3: #42F1A3;
+      --c4: #269E2B;
+      --c5: #E0686A;
     }
     * { box-sizing: border-box; }
     body {
@@ -90,12 +90,36 @@
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.15);
     }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
     @media (max-width: 700px) {
       .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="back-home" href="index.html">Back to all posts</a>
   <main class="page">
     <h1
 id="getting-started-with-homebrew-essential-commands-for-everyday-use">Getting
@@ -174,16 +198,13 @@ your daily workflow. Happy brewing!</p>
     <section aria-label="Generated color palette">
       <h3>Generated Palette</h3>
       <div class="palette">
-        <span class="swatch"><span class="dot" style="background:#459E68"></span>#459E68</span>
-        <span class="swatch"><span class="dot" style="background:#467619"></span>#467619</span>
-        <span class="swatch"><span class="dot" style="background:#F5AA01"></span>#F5AA01</span>
-        <span class="swatch"><span class="dot" style="background:#4D1EC6"></span>#4D1EC6</span>
-        <span class="swatch"><span class="dot" style="background:#B78CD6"></span>#B78CD6</span>
+        <span class="swatch"><span class="dot" style="background:#E82850"></span>#E82850</span>
+        <span class="swatch"><span class="dot" style="background:#FFAAC8"></span>#FFAAC8</span>
+        <span class="swatch"><span class="dot" style="background:#42F1A3"></span>#42F1A3</span>
+        <span class="swatch"><span class="dot" style="background:#269E2B"></span>#269E2B</span>
+        <span class="swatch"><span class="dot" style="background:#E0686A"></span>#E0686A</span>
       </div>
     </section>
-    <p style="margin-top:1.4rem;">
-      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
-    </p>
   </main>
 </body>
 </html>

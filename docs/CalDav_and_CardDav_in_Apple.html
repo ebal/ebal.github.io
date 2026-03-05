@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>How to Set Up a Self‑Hosted Calendar & Contacts Server on iPhone and macOS (Using Baïkal)</title>
+  <title>How to Set Up a Self‑Hosted Calendar and Contacts Server on iPhone and macOS using baikal</title>
   <style>
     :root {
-      --c1: #0FE162;
-      --c2: #0AB8C1;
-      --c3: #ECC239;
-      --c4: #B27732;
-      --c5: #379B90;
+      --c1: #0E221C;
+      --c2: #214F7E;
+      --c3: #0D5190;
+      --c4: #8DEAA2;
+      --c5: #08FD30;
     }
     * { box-sizing: border-box; }
     body {
@@ -90,17 +90,41 @@
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.15);
     }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
     @media (max-width: 700px) {
       .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="back-home" href="index.html">Back to all posts</a>
   <main class="page">
     <h1
-id="how-to-set-up-a-selfhosted-calendar--contacts-server-on-iphone-and-macos-using-baïkal">How
-to Set Up a Self‑Hosted Calendar &amp; Contacts Server on iPhone and
-macOS (Using Baïkal)</h1>
+id="how-to-set-up-a-selfhosted-calendar-and-contacts-server-on-iphone-and-macos-using-baikal">How
+to Set Up a Self‑Hosted Calendar and Contacts Server on iPhone and macOS
+using baikal</h1>
 <h2 id="why-selfhost">Why Self‑Host?</h2>
 <p>You want full control over your calendar and contacts—without relying
 on Google, Apple, or other cloud providers—you can
@@ -255,16 +279,13 @@ device</li>
     <section aria-label="Generated color palette">
       <h3>Generated Palette</h3>
       <div class="palette">
-        <span class="swatch"><span class="dot" style="background:#0FE162"></span>#0FE162</span>
-        <span class="swatch"><span class="dot" style="background:#0AB8C1"></span>#0AB8C1</span>
-        <span class="swatch"><span class="dot" style="background:#ECC239"></span>#ECC239</span>
-        <span class="swatch"><span class="dot" style="background:#B27732"></span>#B27732</span>
-        <span class="swatch"><span class="dot" style="background:#379B90"></span>#379B90</span>
+        <span class="swatch"><span class="dot" style="background:#0E221C"></span>#0E221C</span>
+        <span class="swatch"><span class="dot" style="background:#214F7E"></span>#214F7E</span>
+        <span class="swatch"><span class="dot" style="background:#0D5190"></span>#0D5190</span>
+        <span class="swatch"><span class="dot" style="background:#8DEAA2"></span>#8DEAA2</span>
+        <span class="swatch"><span class="dot" style="background:#08FD30"></span>#08FD30</span>
       </div>
     </section>
-    <p style="margin-top:1.4rem;">
-      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
-    </p>
   </main>
 </body>
 </html>

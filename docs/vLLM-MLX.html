@@ -6,11 +6,11 @@
   <title>Running vLLM-MLX on Apple Silicon</title>
   <style>
     :root {
-      --c1: #6634FC;
-      --c2: #CF5BF4;
-      --c3: #520124;
-      --c4: #43AA7B;
-      --c5: #30B0BA;
+      --c1: #3BD06E;
+      --c2: #342613;
+      --c3: #9562BC;
+      --c4: #B9910C;
+      --c5: #AC6386;
     }
     * { box-sizing: border-box; }
     body {
@@ -90,12 +90,36 @@
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.15);
     }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
     @media (max-width: 700px) {
       .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="back-home" href="index.html">Back to all posts</a>
   <main class="page">
     <h1 id="running-vllm-mlx-on-apple-silicon">Running vLLM-MLX on Apple
 Silicon</h1>
@@ -383,16 +407,13 @@ running natively on your Mac.</em></p>
     <section aria-label="Generated color palette">
       <h3>Generated Palette</h3>
       <div class="palette">
-        <span class="swatch"><span class="dot" style="background:#6634FC"></span>#6634FC</span>
-        <span class="swatch"><span class="dot" style="background:#CF5BF4"></span>#CF5BF4</span>
-        <span class="swatch"><span class="dot" style="background:#520124"></span>#520124</span>
-        <span class="swatch"><span class="dot" style="background:#43AA7B"></span>#43AA7B</span>
-        <span class="swatch"><span class="dot" style="background:#30B0BA"></span>#30B0BA</span>
+        <span class="swatch"><span class="dot" style="background:#3BD06E"></span>#3BD06E</span>
+        <span class="swatch"><span class="dot" style="background:#342613"></span>#342613</span>
+        <span class="swatch"><span class="dot" style="background:#9562BC"></span>#9562BC</span>
+        <span class="swatch"><span class="dot" style="background:#B9910C"></span>#B9910C</span>
+        <span class="swatch"><span class="dot" style="background:#AC6386"></span>#AC6386</span>
       </div>
     </section>
-    <p style="margin-top:1.4rem;">
-      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
-    </p>
   </main>
 </body>
 </html>

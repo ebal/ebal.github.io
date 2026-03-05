@@ -251,12 +251,36 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.15);
     }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
     @media (max-width: 700px) {
       .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="back-home" href="index.html">Back to all posts</a>
   <main class="page">
     $body_html
     <hr>
@@ -270,9 +294,6 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
         <span class="swatch"><span class="dot" style="background:$c5"></span>$c5</span>
       </div>
     </section>
-    <p style="margin-top:1.4rem;">
-      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
-    </p>
   </main>
 </body>
 </html>

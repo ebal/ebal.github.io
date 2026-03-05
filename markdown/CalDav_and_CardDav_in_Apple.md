@@ -1,4 +1,4 @@
-# How to Set Up a Self‑Hosted Calendar & Contacts Server on iPhone and macOS (Using Baïkal)
+# How to Set Up a Self‑Hosted Calendar and Contacts Server on iPhone and macOS using baikal
 
 ## Why Self‑Host?
 

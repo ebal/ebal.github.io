@@ -59,39 +59,78 @@ rewrite_local_img_urls() {
     -e "s#src='((\\./|\\.\\./)*)img/+([^']+)'#src='$GITHUB_IMG_BASE_URL/\\3'#g"
 }
 
-insert_post_into_index() {
-  local html_file="$1"
-  local title="$2"
-  local escaped_title
+md_epoch() {
+  local md_file="$1"
+  date -r "$md_file" '+%s' 2>/dev/null || stat -c '%Y' "$md_file" 2>/dev/null || echo 0
+}
 
-  if grep -Fq "href=\"$html_file\"" "$INDEX_FILE"; then
-    return 0
-  fi
+md_date() {
+  local md_file="$1"
+  date -r "$md_file" '+%Y-%m-%d' 2>/dev/null || date '+%Y-%m-%d'
+}
 
-  escaped_title="$(printf '%s' "$title" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')"
+rebuild_index_posts() {
+  local row epoch html_file title post_date escaped_title
+  local block=""
 
-  local snippet
-  snippet="$(cat <<EOF
-            <a class="post" href="$html_file">
-                <h2 class="post-title">$escaped_title</h2>
-                <p class="post-path">$html_file</p>
-            </a>
-EOF
-)"
+  while IFS='|' read -r epoch html_file title post_date; do
+    escaped_title="$(printf '%s' "$title" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')"
+    block+="            <a class=\"post\" href=\"$html_file\">"$'\n'
+    block+="                <h2 class=\"post-title\">$escaped_title</h2>"$'\n'
+    block+="                <p class=\"post-date\">$post_date</p>"$'\n'
+    block+="            </a>"$'\n'
+    block+=$'\n'
+  done < <(
+    shopt -s nullglob
+    for md_file in "$MARKDOWN_DIR"/*.md; do
+      base_name="$(basename "$md_file" .md)"
+      html_file="$base_name.html"
+      if [[ "$html_file" == "index.html" ]]; then
+        continue
+      fi
+      title_fallback="$(slug_to_title "$base_name")"
+      title="$(extract_title "$md_file" "$title_fallback")"
+      post_date="$(md_date "$md_file")"
+      epoch="$(md_epoch "$md_file")"
+      printf '%s|%s|%s|%s\n' "$epoch" "$html_file" "$title" "$post_date"
+    done | sort -t'|' -k1,1nr
+  )
 
-  awk -v block="$snippet" '
-    BEGIN { in_posts = 0; inserted = 0 }
+  awk -v block="$block" '
+    BEGIN {
+      in_posts = 0
+      skip_post = 0
+      inserted = 0
+    }
     {
-      print
+      if ($0 ~ /<a class="post"/) {
+        skip_post = 1
+      }
+
+      if (skip_post) {
+        if ($0 ~ /<\/a>/) {
+          skip_post = 0
+        }
+        next
+      }
+
       if (!inserted && index($0, "<div class=\"posts\">")) {
+        print
+        printf "%s", block
+        inserted = 1
         in_posts = 1
         next
       }
-      if (in_posts && !inserted && index($0, "</div>")) {
-        print block
-        inserted = 1
-        in_posts = 0
+
+      if (in_posts) {
+        if (index($0, "</div>")) {
+          print
+          in_posts = 0
+        }
+        next
       }
+
+      print
     }
   ' "$INDEX_FILE" > "$INDEX_FILE.tmp"
 
@@ -245,16 +284,9 @@ done
 
 if [[ ${#new_files[@]} -eq 0 ]]; then
   echo "No new markdown files found to generate."
-  exit 0
 fi
 
-for base_name in "${new_files[@]}"; do
-  md_file="$MARKDOWN_DIR/$base_name.md"
-  html_file="$base_name.html"
-  title_fallback="$(slug_to_title "$base_name")"
-  title="$(extract_title "$md_file" "$title_fallback")"
-  insert_post_into_index "$html_file" "$title"
-  echo "Indexed: $html_file"
-done
+rebuild_index_posts
+echo "Index rebuilt in reverse date order."
 
 echo "Done."

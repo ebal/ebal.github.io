@@ -193,18 +193,15 @@ For high-memory Macs (64 GB+ recommended), you can run much larger models with a
 ```bash
 vllm-mlx serve Qwen/Qwen3.5-35B-A3B-GPTQ-Int4 \
   --port 8010 \
-  --tensor-parallel-size 4 \
-  --max-model-len 262144 \
-  --reasoning-parser qwen3 \
-  --quantization moe_wna16
+  --max-tokens 262144 \
+  --reasoning-parser qwen3
+
 ```
 
 | Flag | Purpose |
 |---|---|
-| `--tensor-parallel-size 4` | Splits the model across compute units |
-| `--max-model-len 262144` | Sets a large context window (256k tokens) |
+| `--max-tokens 262144` | Sets a large context window (256k tokens) |
 | `--reasoning-parser qwen3` | Enables Qwen-specific reasoning output format |
-| `--quantization moe_wna16` | Applies MoE-optimized quantization |
 
 ---
 

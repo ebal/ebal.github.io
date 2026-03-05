@@ -6,11 +6,11 @@
   <title>Running vLLM-MLX on Apple Silicon</title>
   <style>
     :root {
-      --c1: #3BD06E;
-      --c2: #342613;
-      --c3: #9562BC;
-      --c4: #B9910C;
-      --c5: #AC6386;
+      --c1: #0F3780;
+      --c2: #2D538F;
+      --c3: #0CFAE0;
+      --c4: #F339A3;
+      --c5: #9B1146;
     }
     * { box-sizing: border-box; }
     body {
@@ -306,10 +306,8 @@ models with additional flags:</p>
 <div class="sourceCode" id="cb13"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vllm-mlx</span> serve Qwen/Qwen3.5-35B-A3B-GPTQ-Int4 <span class="dt">\</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--port</span> 8010 <span class="dt">\</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--tensor-parallel-size</span> 4 <span class="dt">\</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-model-len</span> 262144 <span class="dt">\</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--reasoning-parser</span> qwen3 <span class="dt">\</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--quantization</span> moe_wna16</span></code></pre></div>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-tokens</span> 262144 <span class="dt">\</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--reasoning-parser</span> qwen3</span></code></pre></div>
 <table>
 <thead>
 <tr class="header">
@@ -319,20 +317,12 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href=
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>--tensor-parallel-size 4</code></td>
-<td>Splits the model across compute units</td>
-</tr>
-<tr class="even">
-<td><code>--max-model-len 262144</code></td>
+<td><code>--max-tokens 262144</code></td>
 <td>Sets a large context window (256k tokens)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>--reasoning-parser qwen3</code></td>
 <td>Enables Qwen-specific reasoning output format</td>
-</tr>
-<tr class="even">
-<td><code>--quantization moe_wna16</code></td>
-<td>Applies MoE-optimized quantization</td>
 </tr>
 </tbody>
 </table>
@@ -407,11 +397,11 @@ running natively on your Mac.</em></p>
     <section aria-label="Generated color palette">
       <h3>Generated Palette</h3>
       <div class="palette">
-        <span class="swatch"><span class="dot" style="background:#3BD06E"></span>#3BD06E</span>
-        <span class="swatch"><span class="dot" style="background:#342613"></span>#342613</span>
-        <span class="swatch"><span class="dot" style="background:#9562BC"></span>#9562BC</span>
-        <span class="swatch"><span class="dot" style="background:#B9910C"></span>#B9910C</span>
-        <span class="swatch"><span class="dot" style="background:#AC6386"></span>#AC6386</span>
+        <span class="swatch"><span class="dot" style="background:#0F3780"></span>#0F3780</span>
+        <span class="swatch"><span class="dot" style="background:#2D538F"></span>#2D538F</span>
+        <span class="swatch"><span class="dot" style="background:#0CFAE0"></span>#0CFAE0</span>
+        <span class="swatch"><span class="dot" style="background:#F339A3"></span>#F339A3</span>
+        <span class="swatch"><span class="dot" style="background:#9B1146"></span>#9B1146</span>
       </div>
     </section>
   </main>

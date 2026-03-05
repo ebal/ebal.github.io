@@ -67,6 +67,26 @@
             color: var(--deep-teal);
         }
 
+        .search-wrap {
+            margin: 0 0 1rem;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid rgba(91, 123, 122, 0.45);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--deep-teal);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .search-box:focus {
+            outline: 2px solid rgba(60, 136, 126, 0.35);
+            outline-offset: 1px;
+            border-color: var(--dark-cyan);
+        }
+
         .posts {
             display: grid;
             gap: 0.9rem;
@@ -117,6 +137,10 @@
             <strong>About this page:</strong> This index belongs to Evaggelos Balaskas and lists personal posts published as HTML pages in this directory.
         </p>
 
+        <div class="search-wrap">
+            <input id="postSearch" class="search-box" type="search" placeholder="Search posts (e.g. vllm)" aria-label="Search posts">
+        </div>
+
         <div class="posts">
             <a class="post" href="CalDav_and_CardDav_in_Apple.html">
                 <h2 class="post-title">CalDav and CardDav in Apple</h2>
@@ -138,5 +162,24 @@
                 <p class="post-path">vLLM-MLX.html</p>
             </a>
     </div>
+    <script>
+        (function () {
+            const searchInput = document.getElementById("postSearch");
+            const posts = Array.from(document.querySelectorAll(".post"));
+
+            if (!searchInput || posts.length === 0) {
+                return;
+            }
+
+            searchInput.addEventListener("input", function () {
+                const query = this.value.trim().toLowerCase();
+
+                posts.forEach(function (post) {
+                    const text = (post.textContent || "").toLowerCase();
+                    post.style.display = text.includes(query) ? "" : "none";
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

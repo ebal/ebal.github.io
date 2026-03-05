@@ -4,6 +4,7 @@ set -euo pipefail
 MARKDOWN_DIR="markdown"
 DOCS_DIR="docs"
 INDEX_FILE="$DOCS_DIR/index.html"
+GITHUB_IMG_BASE_URL="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img"
 
 if ! command -v pandoc >/dev/null 2>&1; then
   echo "Error: pandoc is required but was not found in PATH."
@@ -50,6 +51,12 @@ extract_title() {
     title="$fallback"
   fi
   echo "$title"
+}
+
+rewrite_local_img_urls() {
+  sed -E \
+    -e "s#src=\"((\\./|\\.\\./)*)img/+([^\"]+)\"#src=\"$GITHUB_IMG_BASE_URL/\\3\"#g" \
+    -e "s#src='((\\./|\\.\\./)*)img/+([^']+)'#src='$GITHUB_IMG_BASE_URL/\\3'#g"
 }
 
 insert_post_into_index() {
@@ -110,7 +117,7 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
 
   title_fallback="$(slug_to_title "$base_name")"
   title="$(extract_title "$md_file" "$title_fallback")"
-  body_html="$(pandoc -f gfm -t html "$md_file")"
+  body_html="$(pandoc -f gfm -t html "$md_file" | rewrite_local_img_urls)"
 
   cat > "$output_html" <<EOF
 <!DOCTYPE html>

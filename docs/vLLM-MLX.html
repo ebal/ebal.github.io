@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Running vLLM-MLX on Apple Silicon</title>
+  <style>
+    :root {
+      --c1: #27E30C;
+      --c2: #C727C8;
+      --c3: #FBAEE4;
+      --c4: #F565F6;
+      --c5: #796DCA;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+      line-height: 1.7;
+      color: #1f2328;
+      background:
+        radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
+        linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
+      padding: 2rem 1rem;
+    }
+    .page {
+      width: min(900px, 100%);
+      margin: 0 auto;
+      background: color-mix(in srgb, var(--c1) 18%, white);
+      border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
+      border-radius: 14px;
+      box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
+      padding: 2rem;
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      color: color-mix(in srgb, var(--c5) 80%, #000000);
+    }
+    a {
+      color: color-mix(in srgb, var(--c4) 85%, #000000);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    hr {
+      border: 0;
+      border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
+      margin: 2rem 0;
+    }
+    pre, code {
+      background: color-mix(in srgb, var(--c2) 16%, #ffffff);
+      border-radius: 6px;
+    }
+    pre { padding: 1rem; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
+      padding: 0.6rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: color-mix(in srgb, var(--c2) 24%, #ffffff);
+      color: color-mix(in srgb, var(--c5) 78%, #000000);
+    }
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: #333;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+    }
+    .dot {
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    @media (max-width: 700px) {
+      .page { padding: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1 id="running-vllm-mlx-on-apple-silicon">Running vLLM-MLX on Apple
+Silicon</h1>
+<p>Want to run modern LLMs locally — with an OpenAI-compatible API,
+multimodal support, and strong performance on Apple Silicon? This
+beginner-friendly guide walks you through everything from installation
+to your first inference request.</p>
+<p>No prior ML experience required.</p>
+<hr />
+<h2 id="what-is-vllm-mlx">What is vllm-mlx?</h2>
+<p><code>vllm-mlx</code> is a community-driven inference server built
+specifically for Apple Silicon Macs. It uses <strong>MLX</strong>,
+Apple's machine learning framework designed for M-series chips, and
+exposes an OpenAI-compatible HTTP API so you can drop it in wherever
+you'd use the OpenAI SDK.</p>
+<p>Think of it as a full, self-contained AI server stack that runs
+entirely on your Mac.</p>
+<h3 id="how-does-it-differ-from-official-vllm">How does it differ from
+official vLLM?</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>vLLM (official)</th>
+<th>vllm-mlx</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Backend</td>
+<td>CUDA (NVIDIA GPUs)</td>
+<td>MLX (Apple Silicon)</td>
+</tr>
+<tr class="even">
+<td>Platform</td>
+<td>Linux + NVIDIA</td>
+<td>macOS + Apple Silicon</td>
+</tr>
+<tr class="odd">
+<td>Multimodal support</td>
+<td>Limited</td>
+<td>Built-in (vision, audio, embeddings)</td>
+</tr>
+<tr class="even">
+<td>API compatibility</td>
+<td>OpenAI</td>
+<td>OpenAI + Anthropic</td>
+</tr>
+<tr class="odd">
+<td>Architecture</td>
+<td>Plugin-based</td>
+<td>Standalone framework</td>
+</tr>
+<tr class="even">
+<td>Built on</td>
+<td>vLLM engine internals</td>
+<td><code>mlx-lm</code>, <code>mlx-vlm</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> <code>vllm-mlx</code> is not a plugin or
+fork of official vLLM. It's a separate framework built from the ground
+up for Macs.</p>
+<hr />
+<h2 id="why-use-vllm-mlx">Why use vllm-mlx?</h2>
+<p>It's the right tool if you want:</p>
+<ul>
+<li>A full-featured local AI server on Apple Silicon</li>
+<li>Text and multimodal inference in a single server</li>
+<li>OpenAI-compatible APIs out of the box</li>
+<li>Fully offline inference — no cloud, no data leaving your
+machine</li>
+</ul>
+<hr />
+<h2 id="system-requirements">System requirements</h2>
+<ul>
+<li>macOS with Apple Silicon (M1/M2/M3/M4)</li>
+<li>Python 3.10+</li>
+<li>16 GB RAM minimum recommended (larger models require more)</li>
+</ul>
+<hr />
+<h2 id="step-1--create-a-clean-python-environment">Step 1 — Create a
+clean Python environment</h2>
+<p>Never install ML tooling into your global Python. Use an isolated
+virtual environment:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> venv ~/.venv-vllm-mlx</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> ~/.venv-vllm-mlx/bin/activate</span></code></pre></div>
+<p>Once activated, your shell prompt should change to something
+like:</p>
+<pre><code>(venv-vllm-mlx) yourname@macbook %</code></pre>
+<p>Alternatively, with <code>virtualenv</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">virtualenv</span> venv-vllm-mlx</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> venv-vllm-mlx/bin/activate</span></code></pre></div>
+<hr />
+<h2 id="step-2--install-vllm-mlx">Step 2 — Install vllm-mlx</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install vllm-mlx</span></code></pre></div>
+<p>Verify the installation:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> list <span class="kw">|</span> <span class="fu">grep</span> vllm</span></code></pre></div>
+<p>You should see <code>vllm-mlx</code> in the output.</p>
+<hr />
+<h2 id="step-3--start-your-first-model-server">Step 3 — Start your first
+model server</h2>
+<p>We'll use a 4-bit quantized Llama 3.2 model — small, fast, and a good
+starting point.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vllm-mlx</span> serve mlx-community/Llama-3.2-3B-Instruct-4bit <span class="at">--port</span> 8010</span></code></pre></div>
+<p>This command will:</p>
+<ol type="1">
+<li>Download the model from HuggingFace (first run only)</li>
+<li>Load it into the MLX backend</li>
+<li>Start an HTTP API server on port 8010</li>
+</ol>
+<p>You'll see log output showing the model loading and the server
+starting on <code>0.0.0.0:8010</code>.</p>
+<hr />
+<h2 id="step-4--verify-the-server">Step 4 — Verify the server</h2>
+<h3 id="health-check">Health check</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> http://localhost:8010/health <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>Expected output:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;healthy&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;model_loaded&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;model_name&quot;</span><span class="fu">:</span> <span class="st">&quot;mlx-community/Llama-3.2-3B-Instruct-4bit&quot;</span><span class="fu">,</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;model_type&quot;</span><span class="fu">:</span> <span class="st">&quot;llm&quot;</span><span class="fu">,</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;engine_type&quot;</span><span class="fu">:</span> <span class="st">&quot;simple&quot;</span><span class="fu">,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mcp&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="list-available-models">List available models</h3>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> http://localhost:8010/v1/models <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>Expected output:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;list&quot;</span><span class="fu">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;mlx-community/Llama-3.2-3B-Instruct-4bit&quot;</span><span class="fu">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;model&quot;</span><span class="fu">,</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created&quot;</span><span class="fu">:</span> <span class="dv">1772701579</span><span class="fu">,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;owned_by&quot;</span><span class="fu">:</span> <span class="st">&quot;vllm-mlx&quot;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="step-5--send-a-chat-request">Step 5 — Send a chat request</h2>
+<p>Use the OpenAI-compatible <code>/v1/chat/completions</code>
+endpoint:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> http://127.0.0.1:8010/v1/chat/completions <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;model&quot;: &quot;mlx-community/Llama-3.2-3B-Instruct-4bit&quot;,</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;messages&quot;: [</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="st">      {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Hello! What is the capital of Greece?&quot;}</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="st">    ],</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;max_tokens&quot;: 100</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span> <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>Expected response:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;chat.completion&quot;</span><span class="fu">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;choices&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;role&quot;</span><span class="fu">:</span> <span class="st">&quot;assistant&quot;</span><span class="fu">,</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="st">&quot;The capital of Greece is Athens.&quot;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>You're now running a local LLM server on your Mac.</p>
+<hr />
+<h2 id="running-larger-models-advanced">Running larger models
+(advanced)</h2>
+<p>For high-memory Macs (64 GB+ recommended), you can run much larger
+models with additional flags:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vllm-mlx</span> serve Qwen/Qwen3.5-35B-A3B-GPTQ-Int4 <span class="dt">\</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--port</span> 8010 <span class="dt">\</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--tensor-parallel-size</span> 4 <span class="dt">\</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-model-len</span> 262144 <span class="dt">\</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--reasoning-parser</span> qwen3 <span class="dt">\</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--quantization</span> moe_wna16</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>--tensor-parallel-size 4</code></td>
+<td>Splits the model across compute units</td>
+</tr>
+<tr class="even">
+<td><code>--max-model-len 262144</code></td>
+<td>Sets a large context window (256k tokens)</td>
+</tr>
+<tr class="odd">
+<td><code>--reasoning-parser qwen3</code></td>
+<td>Enables Qwen-specific reasoning output format</td>
+</tr>
+<tr class="even">
+<td><code>--quantization moe_wna16</code></td>
+<td>Applies MoE-optimized quantization</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="what-you-can-do-next">What you can do next</h2>
+<p>With your local server running, you can connect it to the broader AI
+tooling ecosystem by pointing any OpenAI-compatible client at
+<code>http://localhost:8010/v1</code>:</p>
+<ul>
+<li><strong><a href="https://github.com/open-webui/open-webui">Open
+WebUI</a></strong> — browser-based chat UI</li>
+<li><strong><a
+href="https://python.langchain.com/">LangChain</a></strong> or
+<strong><a href="https://www.llamaindex.ai/">LlamaIndex</a></strong> —
+agent and RAG pipelines</li>
+<li><strong>OpenAI Python SDK</strong> — just set
+<code>base_url="http://localhost:8010/v1"</code></li>
+<li><strong>Embeddings and multimodal models</strong> — swap in a
+different model and the same API applies</li>
+</ul>
+<hr />
+<h2 id="architecture-overview">Architecture overview</h2>
+<p>When you run <code>vllm-mlx serve</code>, you get a layered
+system:</p>
+<p><img src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/vLLM-MLX.png"
+alt="vLLM-MLX architecture overview" /></p>
+<pre><code>Your App (curl / SDK / WebUI)
+        ↓
+OpenAI-Compatible API Layer
+  /v1/chat/completions, /v1/models, /health, ...
+        ↓
+vllm-mlx Core Server
+  Request validation, tokenization, generation loop,
+  streaming, multimodal routing, embeddings
+        ↓
+MLX Model Layer
+  Quantized model weights, forward passes,
+  Apple GPU acceleration, unified memory management
+        ↓
+Apple Silicon Hardware
+  M-series GPU + CPU sharing the same memory pool</code></pre>
+<h3 id="why-apple-silicon-works-so-well-here">Why Apple Silicon works so
+well here</h3>
+<p>On a discrete GPU setup (NVIDIA), model weights must be copied over
+PCIe from system RAM to VRAM before inference can begin. Apple Silicon
+eliminates this bottleneck entirely — the CPU and GPU share the same
+unified memory pool. Combined with Apple's high memory bandwidth, this
+makes MLX extremely efficient for inference on models that fit in
+RAM.</p>
+<h3 id="multimodal-routing">Multimodal routing</h3>
+<p>When using a vision or audio model, the server adds an extra routing
+step:</p>
+<pre><code>Image / Audio input
+        ↓
+Multimodal Router (mlx-vlm / audio pipeline)
+        ↓
+LLM reasoning
+        ↓
+Text output</code></pre>
+<p>No additional services are required — it's built into the same server
+process.</p>
+<h3 id="how-vllm-mlx-differs-from-official-vllm-under-the-hood">How
+vllm-mlx differs from official vLLM under the hood</h3>
+<pre><code>Official vLLM:   App → vLLM Engine → CUDA kernels → NVIDIA GPU
+vllm-mlx:        App → vllm-mlx Server → MLX tensors → Apple GPU</code></pre>
+<p>These are entirely different acceleration stacks. vllm-mlx doesn't
+use or depend on any CUDA code.</p>
+<hr />
+<p><em>That's it. A local, fully offline, OpenAI-compatible LLM server
+running natively on your Mac.</em></p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#27E30C"></span>#27E30C</span>
+        <span class="swatch"><span class="dot" style="background:#C727C8"></span>#C727C8</span>
+        <span class="swatch"><span class="dot" style="background:#FBAEE4"></span>#FBAEE4</span>
+        <span class="swatch"><span class="dot" style="background:#F565F6"></span>#F565F6</span>
+        <span class="swatch"><span class="dot" style="background:#796DCA"></span>#796DCA</span>
+      </div>
+    </section>
+    <p style="margin-top:1.4rem;">
+      <a href="index.html" style="display:inline-block;padding:0.5rem 0.85rem;border-radius:999px;background:color-mix(in srgb, var(--c5) 70%, #000000);color:#fff;text-decoration:none;">Back to all posts</a>
+    </p>
+  </main>
+</body>
+</html>

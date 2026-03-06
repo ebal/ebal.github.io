@@ -1,8 +1,10 @@
 # ebal.github.io
 
-Evaggelos Balaskas
+**Evaggelos Balaskas - Systems Engineer**
 
-Simple static site generator for markdown posts.
+My Blog: [blog.balaskas.gr](https://blog.balaskas.gr)
+
+Simple static site generator for markdown posts, which I post to [ebal.github.io](https://ebal.github.io)
 
 ## Usage
 

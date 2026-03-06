@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Use Brave Leo with a Local LLM for Maximum Privacy</title>
+  <style>
+    :root {
+      --c1: #B39E68;
+      --c2: #148BA0;
+      --c3: #274342;
+      --c4: #207552;
+      --c5: #9347E0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+      line-height: 1.7;
+      color: #1f2328;
+      background:
+        radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
+        linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
+      padding: 2rem 1rem;
+    }
+    .page {
+      width: min(900px, 100%);
+      margin: 0 auto;
+      background: color-mix(in srgb, var(--c1) 18%, white);
+      border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
+      border-radius: 14px;
+      box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
+      padding: 2rem;
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      color: color-mix(in srgb, var(--c5) 80%, #000000);
+    }
+    a {
+      color: color-mix(in srgb, var(--c4) 85%, #000000);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    hr {
+      border: 0;
+      border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
+      margin: 2rem 0;
+    }
+    pre, code {
+      background: color-mix(in srgb, var(--c2) 16%, #ffffff);
+      border-radius: 6px;
+    }
+    pre { padding: 1rem; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
+      padding: 0.6rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: color-mix(in srgb, var(--c2) 24%, #ffffff);
+      color: color-mix(in srgb, var(--c5) 78%, #000000);
+    }
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: #333;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+    }
+    .dot {
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    .back-home {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: inline-block;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--c5) 70%, #000000);
+      color: #fff;
+      text-decoration: none;
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+    }
+    .back-home:hover {
+      text-decoration: none;
+      filter: brightness(1.05);
+    }
+    @media (max-width: 700px) {
+      .page { padding: 1.2rem; }
+      .back-home {
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="use-brave-leo-with-a-local-llm-for-maximum-privacy">Use Brave
+Leo with a Local LLM for Maximum Privacy</h1>
+<p>Brave's built-in privacy-first AI assistant, <strong>Leo</strong>,
+supports connecting to a local OpenAI-compatible server. This means your
+conversations never leave your machine — no cloud, no telemetry, just
+your browser talking to your own model.</p>
+<p>This guide uses <strong><a
+href="https://github.com/osaurus-ai/osaurus">Osaurus</a></strong> on a
+<strong>MacBook M4 Pro</strong>, running the <a
+href="https://huggingface.co/mlx-community/Qwen3.5-0.8B-MLX-4bit">qwen3.5-0.8b-mlx-4bit</a>
+model as a local example. Any OpenAI-compatible local server (LM Studio,
+Ollama, llama.cpp, etc.) will work the same way.</p>
+<hr />
+<h2 id="about-the-model">About the Model</h2>
+<p><strong>Qwen3.5-0.8B</strong> is Alibaba's latest small language
+model, released in March 2026. Despite its compact size, it is a native
+multimodal model — meaning it supports both text and vision (image
+understanding) out of the box. It runs efficiently on Apple Silicon via
+MLX quantization, making it an excellent fit for local inference on a
+MacBook M4 Pro with minimal RAM usage.</p>
+<p>The <code>mlx-4bit</code> suffix means the model weights are 4-bit
+quantized for Apple Silicon using the <a
+href="https://github.com/ml-explore/mlx">MLX</a> framework — fast,
+low-memory, and runs entirely on-device.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><a href="https://brave.com/download/">Brave Browser</a> installed
+(check latest version)</li>
+<li>A local LLM server running and reachable at
+<code>http://localhost:&lt;port&gt;</code></li>
+<li>Your server responds to <code>POST /v1/chat/completions</code>
+(OpenAI-compatible API)</li>
+</ul>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/osaurus.png"
+alt="osaurus" /></p>
+<p>Verify your server is working before continuing:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> <span class="at">-X</span> POST http://localhost:1337/v1/chat/completions <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;model&quot;: &quot;qwen3.5-0.8b-mlx-4bit&quot;,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Say hello&quot;}]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span> <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>You should get a JSON response with a
+<code>choices[0].message.content</code> field. If that works, you're
+ready.</p>
+<h3 id="example-output">example output</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode j"><code class="sourceCode j"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>id<span class="kw">&quot;:</span> <span class="kw">&quot;</span>chatcmpl<span class="kw">-</span><span class="dv">88053214</span>C2DC<span class="kw">&quot;,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>object<span class="kw">&quot;:</span> <span class="kw">&quot;</span>chat<span class="kw">.</span>completion<span class="kw">&quot;,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>created<span class="kw">&quot;:</span> <span class="dv">1772783955</span><span class="kw">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>model<span class="kw">&quot;:</span> <span class="kw">&quot;</span>qwen3<span class="kw">.</span><span class="dv">5</span><span class="kw">-</span>0<span class="kw">.</span>8b<span class="kw">-</span>mlx<span class="kw">-</span>4bit<span class="kw">&quot;,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>choices<span class="kw">&quot;:</span> <span class="kw">[</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>finish_reason<span class="kw">&quot;:</span> <span class="kw">&quot;</span>stop<span class="kw">&quot;,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>message<span class="kw">&quot;:</span> <span class="kw">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">&quot;</span>content<span class="kw">&quot;:</span> <span class="kw">&quot;</span>Hello<span class="kw">!</span> How can I help you today<span class="kw">?</span> 😊<span class="kw">&quot;,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">&quot;</span>role<span class="kw">&quot;:</span> <span class="kw">&quot;</span>assistant<span class="kw">&quot;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      <span class="kw">},</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>index<span class="kw">&quot;:</span> <span class="dv">0</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">}</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">],</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>usage<span class="kw">&quot;:</span> <span class="kw">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">&quot;</span>prompt_tokens<span class="kw">&quot;:</span> <span class="dv">2</span><span class="kw">,</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">&quot;</span>completion_tokens<span class="kw">&quot;:</span> <span class="dv">8</span><span class="kw">,</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">&quot;</span>total_tokens<span class="kw">&quot;:</span> <span class="dv">10</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>  <span class="kw">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="kw">}</span></span></code></pre></div>
+<hr />
+<h2 id="step-1--enable-required-brave-flags">Step 1 — Enable Required
+Brave Flags</h2>
+<p>Before Leo can connect to a local server, you need to enable two
+feature flags in Brave.</p>
+<p>Open a new tab and go to:</p>
+<pre><code>brave://flags</code></pre>
+<p>Search for and <strong>enable</strong> each of the following:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>#brave-ai-chat</code></td>
+<td>Enables the Leo AI chat feature</td>
+</tr>
+<tr class="even">
+<td><code>#brave-ai-chat-allow-private-ips</code></td>
+<td>Allows Leo to connect to local/private IP addresses (required for
+<code>localhost</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>After enabling both flags, click <strong>Relaunch</strong> to restart
+Brave.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/brave_ai_flags.png"
+alt="brave ai flags" /></p>
+<hr />
+<h2 id="step-2--open-leo-settings">Step 2 — Open Leo Settings</h2>
+<p>Once Brave restarts, open Leo settings by navigating to:</p>
+<pre><code>brave://settings/leo-ai</code></pre>
+<p>Or open the <strong>Leo sidebar</strong> (chat bubble icon) → click
+the <strong>Settings gear</strong> icon.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/brave_leo_settings_before.png"
+alt="brave leo settings" /></p>
+<hr />
+<h2 id="step-3--add-a-custom-model">Step 3 — Add a Custom Model</h2>
+<p>In the Leo settings page, scroll down to <strong>Bring your own
+model</strong> and click <strong>Add new model</strong>.</p>
+<p>Fill in the fields as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Label</strong></td>
+<td><code>Osaurus</code> <em>(or any name you like)</em></td>
+</tr>
+<tr class="even">
+<td><strong>Model request name</strong></td>
+<td><code>qwen3.5-0.8b-mlx-4bit</code></td>
+</tr>
+<tr class="odd">
+<td><strong>Server endpoint</strong></td>
+<td><code>http://localhost:1337/v1/chat/completions</code></td>
+</tr>
+<tr class="even">
+<td><strong>Context size</strong></td>
+<td><code>32768</code> <em>(adjust based on your model's max
+context)</em></td>
+</tr>
+<tr class="odd">
+<td><strong>API Key</strong></td>
+<td><em>(leave blank)</em></td>
+</tr>
+<tr class="even">
+<td><strong>Vision Support</strong></td>
+<td><strong>Enable</strong> (toggle on — Qwen3.5-0.8B supports
+vision)</td>
+</tr>
+</tbody>
+</table>
+<p>Click <strong>Save model</strong>.</p>
+<blockquote>
+<p><strong>Note:</strong> The server endpoint must be the full path
+including <code>/v1/chat/completions</code>, not just the base URL.</p>
+</blockquote>
+<hr />
+<h2 id="step-4--select-your-local-model">Step 4 — Select Your Local
+Model</h2>
+<p>Back in the Leo chat panel:</p>
+<ol type="1">
+<li>Click the <strong>model selector</strong> dropdown (shows the
+currently active model name).</li>
+<li>Select the model you just added — e.g. <code>Osaurus</code>.</li>
+</ol>
+<p>Leo will now route all requests to your local server.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/brave_leo_settings_after.png"
+alt="brave leo settings osaurus" /></p>
+<hr />
+<h2 id="step-5--start-chatting">Step 5 — Start Chatting</h2>
+<p>Type a message in the Leo input box and press
+<strong>Enter</strong>.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/brave_osaurus.png"
+alt="brave osaurus" /></p>
+<hr />
+<h2 id="how-it-works">How It Works</h2>
+<p>Your request goes to
+<code>http://localhost:1337/v1/chat/completions</code> — entirely on
+your machine. Nothing is sent to Brave's servers or any external
+service.</p>
+<pre><code>You type in Leo
+      │
+      ▼
+Brave sends POST /v1/chat/completions
+      │
+      ▼
+localhost:1337  (your local server — Osaurus)
+      │
+      ▼
+Model inference on Apple Silicon (MLX / 4-bit quantized)
+      │
+      ▼
+Response streams back to Leo in your browser</code></pre>
+<p>No internet required after setup. No data leaves your device.</p>
+<hr />
+<h2 id="tips">Tips</h2>
+<ul>
+<li><strong>Model name must match exactly</strong> what your server
+reports — check it with:</li>
+</ul>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> http://localhost:1337/v1/models <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>eg.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode j"><code class="sourceCode j"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>data<span class="kw">&quot;:</span> <span class="kw">[</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">{</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>object<span class="kw">&quot;:</span> <span class="kw">&quot;</span>model<span class="kw">&quot;,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>id<span class="kw">&quot;:</span> <span class="kw">&quot;</span>llama<span class="kw">-</span><span class="dv">3.2</span><span class="kw">-</span>3b<span class="kw">-</span>instruct<span class="kw">-</span>4bit<span class="kw">&quot;,</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>created<span class="kw">&quot;:</span> <span class="dv">1772791159</span><span class="kw">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>root<span class="kw">&quot;:</span> <span class="kw">&quot;</span>llama<span class="kw">-</span><span class="dv">3.2</span><span class="kw">-</span>3b<span class="kw">-</span>instruct<span class="kw">-</span>4bit<span class="kw">&quot;,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>owned_by<span class="kw">&quot;:</span> <span class="kw">&quot;</span>osaurus<span class="kw">&quot;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">},</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">{</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>object<span class="kw">&quot;:</span> <span class="kw">&quot;</span>model<span class="kw">&quot;,</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>id<span class="kw">&quot;:</span> <span class="kw">&quot;</span>qwen3<span class="kw">.</span><span class="dv">5</span><span class="kw">-</span>0<span class="kw">.</span>8b<span class="kw">-</span>mlx<span class="kw">-</span>4bit<span class="kw">&quot;,</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>created<span class="kw">&quot;:</span> <span class="dv">1772791159</span><span class="kw">,</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>root<span class="kw">&quot;:</span> <span class="kw">&quot;</span>qwen3<span class="kw">.</span><span class="dv">5</span><span class="kw">-</span>0<span class="kw">.</span>8b<span class="kw">-</span>mlx<span class="kw">-</span>4bit<span class="kw">&quot;,</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>      <span class="kw">&quot;</span>owned_by<span class="kw">&quot;:</span> <span class="kw">&quot;</span>osaurus<span class="kw">&quot;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">}</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">],</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&quot;</span>object<span class="kw">&quot;:</span> <span class="kw">&quot;</span>list<span class="kw">&quot;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="kw">}</span></span></code></pre></div>
+<ul>
+<li><strong>Leo context features</strong> (summarize page, ask about
+selected text) also work with local models — Leo includes the page
+content as part of the prompt automatically.</li>
+<li>Since Qwen3.5-0.8B supports vision, with <strong>Vision
+Support</strong> enabled you can paste or drag images into Leo and the
+model will analyze them — all locally.</li>
+<li>Start your local server before opening Brave, or you'll get a
+connection error when Leo tries to reach it.</li>
+</ul>
+<hr />
+<p>That's it. You now have a fully local, private AI assistant inside
+your browser — no accounts, no subscriptions, no data leaving your
+machine.</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#B39E68"></span>#B39E68</span>
+        <span class="swatch"><span class="dot" style="background:#148BA0"></span>#148BA0</span>
+        <span class="swatch"><span class="dot" style="background:#274342"></span>#274342</span>
+        <span class="swatch"><span class="dot" style="background:#207552"></span>#207552</span>
+        <span class="swatch"><span class="dot" style="background:#9347E0"></span>#9347E0</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -202,6 +202,11 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
       text-decoration: none;
     }
     a:hover { text-decoration: underline; }
+    .page img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
     hr {
       border: 0;
       border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);

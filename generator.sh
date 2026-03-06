@@ -4,6 +4,7 @@ set -euo pipefail
 MARKDOWN_DIR="markdown"
 DOCS_DIR="docs"
 INDEX_FILE="$DOCS_DIR/index.html"
+POST_CSS_FILE="$DOCS_DIR/post.css"
 GITHUB_IMG_BASE_URL="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img"
 
 if ! command -v pandoc >/dev/null 2>&1; then
@@ -137,6 +138,122 @@ rebuild_index_posts() {
   mv "$INDEX_FILE.tmp" "$INDEX_FILE"
 }
 
+write_post_css() {
+  cat > "$POST_CSS_FILE" <<'EOF'
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+  line-height: 1.7;
+  color: #1f2328;
+  background:
+    radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
+  padding: 2rem 1rem;
+}
+.page {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--c1) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
+  padding: 2rem;
+}
+h1, h2, h3 {
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--c5) 80%, #000000);
+}
+a {
+  color: color-mix(in srgb, var(--c4) 85%, #000000);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+.page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
+  margin: 2rem 0;
+}
+pre, code {
+  background: color-mix(in srgb, var(--c2) 16%, #ffffff);
+  border-radius: 6px;
+}
+pre { padding: 1rem; overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  background: #fff;
+}
+th, td {
+  border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: color-mix(in srgb, var(--c2) 24%, #ffffff);
+  color: color-mix(in srgb, var(--c5) 78%, #000000);
+}
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #333;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+}
+.dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+.back-home {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: inline-block;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c5) 70%, #000000);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+}
+.back-home:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+@media (max-width: 700px) {
+  .page { padding: 1.2rem; }
+  .back-home {
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.9rem;
+  }
+}
+EOF
+}
+
+write_post_css
+
 new_files=()
 
 shopt -s nullglob
@@ -165,6 +282,7 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>$title</title>
+  <link rel="stylesheet" href="post.css">
   <style>
     :root {
       --c1: $c1;
@@ -172,115 +290,6 @@ for md_file in "$MARKDOWN_DIR"/*.md; do
       --c3: $c3;
       --c4: $c4;
       --c5: $c5;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
-      line-height: 1.7;
-      color: #1f2328;
-      background:
-        radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
-        linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
-      padding: 2rem 1rem;
-    }
-    .page {
-      width: min(900px, 100%);
-      margin: 0 auto;
-      background: color-mix(in srgb, var(--c1) 18%, white);
-      border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
-      border-radius: 14px;
-      box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
-      padding: 2rem;
-    }
-    h1, h2, h3 {
-      line-height: 1.25;
-      color: color-mix(in srgb, var(--c5) 80%, #000000);
-    }
-    a {
-      color: color-mix(in srgb, var(--c4) 85%, #000000);
-      text-decoration: none;
-    }
-    a:hover { text-decoration: underline; }
-    .page img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    hr {
-      border: 0;
-      border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
-      margin: 2rem 0;
-    }
-    pre, code {
-      background: color-mix(in srgb, var(--c2) 16%, #ffffff);
-      border-radius: 6px;
-    }
-    pre { padding: 1rem; overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1.2rem 0;
-      background: #fff;
-    }
-    th, td {
-      border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
-      padding: 0.6rem 0.7rem;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      background: color-mix(in srgb, var(--c2) 24%, #ffffff);
-      color: color-mix(in srgb, var(--c5) 78%, #000000);
-    }
-    .palette {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-    .swatch {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.85rem;
-      color: #333;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 999px;
-      padding: 0.25rem 0.55rem 0.25rem 0.3rem;
-    }
-    .dot {
-      width: 0.85rem;
-      height: 0.85rem;
-      border-radius: 999px;
-      border: 1px solid rgba(0,0,0,0.15);
-    }
-    .back-home {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 1000;
-      display: inline-block;
-      padding: 0.5rem 0.85rem;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--c5) 70%, #000000);
-      color: #fff;
-      text-decoration: none;
-      box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
-    }
-    .back-home:hover {
-      text-decoration: none;
-      filter: brightness(1.05);
-    }
-    @media (max-width: 700px) {
-      .page { padding: 1.2rem; }
-      .back-home {
-        top: 0.75rem;
-        right: 0.75rem;
-        padding: 0.45rem 0.7rem;
-        font-size: 0.9rem;
-      }
     }
   </style>
 </head>

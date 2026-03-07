@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Connect Claude Code to Osaurus MCP</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #DC982A;
+      --c2: #52AEC0;
+      --c3: #7D1420;
+      --c4: #3043D6;
+      --c5: #DEC8EE;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="how-to-connect-claude-code-to-osaurus-mcp">How to Connect Claude
+Code to Osaurus MCP</h1>
+<p>If you want to use <strong><a
+href="https://code.claude.com/docs/en/overview">Claude Code</a></strong>
+together with <strong><a
+href="https://github.com/osaurus-ai/osaurus">Osaurus</a></strong>, there
+are two different pieces to understand:</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/claude_code_osaurus_mcp_qwen3.png"
+alt="claude_code_osaurus_mcp_qwen3" /></p>
+<ol type="1">
+<li><strong>Model backend</strong> — the LLM that answers your
+prompts</li>
+<li><strong>MCP tools</strong> — the tools Claude Code can call</li>
+</ol>
+<p>This is the most important idea:</p>
+<ul>
+<li><strong>Osaurus MCP</strong> gives Claude Code access to tools</li>
+<li><strong>Osaurus API</strong> can also be used as the model backend,
+if your setup supports it</li>
+</ul>
+<p>These are separate.</p>
+<h2 id="install-claude-code-and-osaurus">Install Claude Code and
+Osaurus</h2>
+<p>Let's start by installing both tools via homebrew on a macbook.</p>
+<blockquote>
+<p>Disclaimer: I like asaurus because it's small and amazing, I find
+Ollama big and ugly in macbook.</p>
+</blockquote>
+<h3 id="claude-code-installation">claude code installation</h3>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> claude-code</span></code></pre></div>
+<h3 id="osaurus">osaurus</h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> osaurus</span></code></pre></div>
+<p>Open <code>osaurus ui</code> to <strong>setup</strong> osaurus, in
+this blog post we will not cover this.</p>
+<h4 id="language-models">language models</h4>
+<p>At some point you will download a couple LLMs or SLMs to start with
+osaurus and you should already have install some tools.</p>
+<pre><code>curl -s http://localhost:1337/v1/models | jq .</code></pre>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;llama-3.2-3b-instruct-4bit&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created&quot;</span><span class="fu">:</span> <span class="dv">1772877371</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;model&quot;</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;owned_by&quot;</span><span class="fu">:</span> <span class="st">&quot;osaurus&quot;</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;root&quot;</span><span class="fu">:</span> <span class="st">&quot;llama-3.2-3b-instruct-4bit&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;qwen3-vl-4b-instruct-8bit&quot;</span><span class="fu">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created&quot;</span><span class="fu">:</span> <span class="dv">1772877371</span><span class="fu">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;model&quot;</span><span class="fu">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;owned_by&quot;</span><span class="fu">:</span> <span class="st">&quot;osaurus&quot;</span><span class="fu">,</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;root&quot;</span><span class="fu">:</span> <span class="st">&quot;qwen3-vl-4b-instruct-8bit&quot;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;qwen3.5-0.8b-mlx-4bit&quot;</span><span class="fu">,</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created&quot;</span><span class="fu">:</span> <span class="dv">1772877371</span><span class="fu">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;model&quot;</span><span class="fu">,</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;owned_by&quot;</span><span class="fu">:</span> <span class="st">&quot;osaurus&quot;</span><span class="fu">,</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;root&quot;</span><span class="fu">:</span> <span class="st">&quot;qwen3.5-0.8b-mlx-4bit&quot;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;list&quot;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="status">status</h4>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> osaurus status</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">running</span> <span class="er">(</span><span class="ex">port</span> 1337<span class="kw">)</span></span></code></pre></div>
+<h4 id="tools">tools</h4>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> osaurus tools list</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.browser</span>  version=1.2.0</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.fetch</span>  version=1.0.2</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.filesystem</span>  version=1.0.3</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.git</span>  version=1.0.3</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.images</span>  version=1.0.3</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.macos-use</span>  version=1.2.1</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.search</span>  version=1.0.4</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.time</span>  version=1.0.3</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="ex">osaurus.vision</span>  version=1.0.1</span></code></pre></div>
+<h2 id="connect-claude-code-to-osaurus-via-a-mcp-server">Connect Claude
+Code to Osaurus via a MCP server</h2>
+<p>So by default claude code with autostart an interactive configuration
+setup to connect with your anthropic subscription or with any major ai
+subscription. We want to override this behaviour to enable claude to
+connect with osaurus. best way to do that is via an mcp server.</p>
+<p>Create <code>~/.claude.json</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> ~/.claude.json <span class="op">&lt;&lt;EOF</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="st">  &quot;theme&quot;: &quot;dark-daltonized&quot;,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="st">  &quot;hasCompletedOnboarding&quot;: true,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="st">  &quot;mcpServers&quot;: {</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;osaurus&quot;: {</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;command&quot;: &quot;osaurus&quot;,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;args&quot;: [</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;mcp&quot;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="st">      ]</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="st">  }</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>This tells Claude Code to start Osaurus as an MCP server.</p>
+<blockquote>
+<p><strong>Note on <code>hasCompletedOnboarding</code>:</strong> Setting
+this to <code>true</code> prevents a startup error where Claude Code
+tries to connect to Anthropic's servers before your local endpoint is
+configured. It is not required for the MCP setup itself, but it avoids a
+confusing first-run failure.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note on MCP config location:</strong> MCP servers must be
+defined in <code>~/.claude.json</code> (or a project-local
+<code>.mcp.json</code>). Placing them in
+<code>~/.claude/settings.json</code> will not work — that file is for
+environment variables and permissions, not MCP server definitions.</p>
+</blockquote>
+<h3
+id="configure-claude-code-to-use-osaurus-as-the-model-endpoint">Configure
+Claude Code to use Osaurus as the model endpoint</h3>
+<p>Create <code>~/.claude/settings.json</code>:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/.claude/</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> ~/.claude/settings.json <span class="op">&lt;&lt;EOF</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="st">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="st">  &quot;env&quot;: {</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;ANTHROPIC_BASE_URL&quot;: &quot;http://127.0.0.1:1337&quot;,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;ANTHROPIC_AUTH_TOKEN&quot;: &quot;osaurus&quot;,</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;ANTHROPIC_MODEL&quot;: &quot;qwen3-vl-4b-instruct-8bit&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="st">  }</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="st">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>This does three things:</p>
+<ul>
+<li>points Claude Code to your local Osaurus server</li>
+<li>authenticates with the local Osaurus endpoint using a static
+token</li>
+<li>selects the model to use</li>
+</ul>
+<blockquote>
+<p><strong>Note on <code>ANTHROPIC_MODEL</code> vs
+<code>ANTHROPIC_DEFAULT_SONNET_MODEL</code>:</strong>
+<code>ANTHROPIC_MODEL</code> sets the model directly and is the simpler
+choice when Osaurus exposes a single model.
+<code>ANTHROPIC_DEFAULT_SONNET_MODEL</code> overrides only the model
+Claude Code uses when it internally requests a "sonnet"-class model —
+useful if you want different models for different internal roles, but
+unnecessary for a basic local setup.</p>
+</blockquote>
+<p>and</p>
+<blockquote>
+<p>Claude Code requires custom auth token values to be explicitly
+approved. <strong>ANTHROPIC_AUTH_TOKEN</strong> is for that</p>
+</blockquote>
+<p>Without this, Claude Code may still prompt for authentication even
+though your token is set.</p>
+<h2 id="start-claude-code">Start Claude Code</h2>
+<p>Run:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">claude</span></span></code></pre></div>
+<p>Inside Claude Code, you can check your setup with:</p>
+<pre class="text"><code>/status</code></pre>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/claude_code_status_osaurus_mcp.png"
+alt="claude code status with osaurus mcp" /></p>
+<h2 id="simple-mental-model">Simple mental model</h2>
+<p>Think of it like this:</p>
+<ul>
+<li><strong>Model</strong> = the brain</li>
+<li><strong>MCP</strong> = the toolbox</li>
+</ul>
+<p>Changing the model does <strong>not</strong> remove the tools.</p>
+<hr />
+<p>That is enough to get started.</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#DC982A"></span>#DC982A</span>
+        <span class="swatch"><span class="dot" style="background:#52AEC0"></span>#52AEC0</span>
+        <span class="swatch"><span class="dot" style="background:#7D1420"></span>#7D1420</span>
+        <span class="swatch"><span class="dot" style="background:#3043D6"></span>#3043D6</span>
+        <span class="swatch"><span class="dot" style="background:#DEC8EE"></span>#DEC8EE</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

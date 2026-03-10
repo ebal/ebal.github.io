@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiteLLM as a Local Model AI Gateway</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #4EF5EE;
+      --c2: #B2AC5F;
+      --c3: #C5CFCC;
+      --c4: #1DCC20;
+      --c5: #CD94E5;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="litellm-as-a-local-model-ai-gateway">LiteLLM as a Local Model AI
+Gateway</h1>
+<p>LiteLLM AI Gateway (LLM Proxy)</p>
+<p>This project shows a simple pattern: run multiple local model
+servers, place LiteLLM in front of them, and expose one
+OpenAI-compatible endpoint for apps to use.</p>
+<p>In this setup, Lite LLM sits on <code>http://127.0.0.1:4000/v1</code>
+and routes requests to:</p>
+<ul>
+<li>LM Studio on port <code>1234</code></li>
+<li>vLLM on port <code>8000</code></li>
+<li>Osaurus on port <code>1337</code></li>
+</ul>
+<p>That gives you one clean API for local testing, model switching, and
+app integration.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img//LiteLLM_AI_Gateway.png"
+alt="Lite LLM AI Gateway" /></p>
+<h2 id="why-this-setup-is-useful">Why this setup is useful</h2>
+<p>If you already have local models running in different tools, LiteLLM
+gives you one gateway instead of several different endpoints.</p>
+<p>That means you can:</p>
+<ul>
+<li>keep one API base URL</li>
+<li>switch models by alias</li>
+<li>expose multiple local backends behind the same interface</li>
+<li>plug the endpoint into apps that expect an OpenAI-style API</li>
+</ul>
+<h2 id="what-this-article-shows">What this article shows</h2>
+<p>This guide walks through the full flow:</p>
+<ol type="1">
+<li>LiteLLM exposes <code>/v1/models</code> and returns the three
+configured aliases.</li>
+<li>A chat app can select one of those LiteLLM model names and answer
+normally.</li>
+<li>Khoj can be pointed at LiteLLM by setting the API base to
+<code>http://127.0.0.1:4000/v1</code>.</li>
+<li>Khoj chat models can then use a LiteLLM alias such as
+<code>ministral-lmstudio</code>.</li>
+</ol>
+<h2 id="quick-start">Quick start</h2>
+<p>Use Python <code>3.12</code> or <code>3.13</code> for the LiteLLM
+virtual environment to avoid uvloop path a known incompatibility with
+Python 3.14’s asyncio internals.</p>
+<h3 id="set-up-a-virtual-environment">Set up a virtual environment</h3>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">virtualenv</span> <span class="at">-p</span> python3.12 venv-litellm/</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> venv-litellm/</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> ./bin/activate</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="st">&quot;litellm[proxy]&quot;</span></span></code></pre></div>
+<h3 id="litellm-configuration">LiteLLM Configuration</h3>
+<p>Create <code>config.yaml</code>:</p>
+<p>Below is an example based on my local setup.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">model_list</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">model_name</span><span class="kw">:</span><span class="at"> ministral-lmstudio</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">litellm_params</span><span class="kw">:</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">model</span><span class="kw">:</span><span class="at"> openai/mistralai/ministral-3-3b</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_base</span><span class="kw">:</span><span class="at"> http://127.0.0.1:1234/v1</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> lmstudio</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">model_name</span><span class="kw">:</span><span class="at"> llama3-vllm</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">litellm_params</span><span class="kw">:</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">model</span><span class="kw">:</span><span class="at"> openai/mlx-community/Llama-3.2-3B-Instruct-4bit</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_base</span><span class="kw">:</span><span class="at"> http://127.0.0.1:8000/v1</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> vllm</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">model_name</span><span class="kw">:</span><span class="at"> qwen3-osaurus</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">litellm_params</span><span class="kw">:</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">model</span><span class="kw">:</span><span class="at"> openai/qwen3.5-0.8b-mlx-4bit</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_base</span><span class="kw">:</span><span class="at"> http://127.0.0.1:1337/v1</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> osaurus</span></span></code></pre></div>
+<p>You need the <code>openai/</code> prefix for each model to use
+LiteLLM's OpenAI-compatible provider.</p>
+<h3 id="start-litellm">Start LiteLLM</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">litellm</span> <span class="at">--config</span> config.yaml <span class="at">--port</span> 4000</span></code></pre></div>
+<p>If LiteLLM starts correctly, you should see the three model aliases
+loaded.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/LiteLLM_CLI.png"
+alt="Lite LLM CLI startup" /></p>
+<h2 id="test-the-proxy">Test the proxy</h2>
+<p>List models:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> http://127.0.0.1:4000/v1/models <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/LiteLLM.png"
+alt="Lite LLM model list" /></p>
+<h3 id="test-chat">Test chat</h3>
+<p>Send a chat request:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> http://127.0.0.1:4000/v1/chat/completions <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;model&quot;: &quot;ministral-lmstudio&quot;,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;messages&quot;: [</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="st">      {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Capital of Greece?&quot;}</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="st">    ]</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span> <span class="kw">|</span> <span class="ex">jq</span> .</span></code></pre></div>
+<p>If everything is wired correctly, LiteLLM will forward the request to
+the matching backend and return a normal OpenAI-style response.</p>
+<p>A typical result looks like this:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;chatcmpl-oukopuooxti6xg92g6qx9b&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;created&quot;</span><span class="fu">:</span> <span class="dv">1773142359</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;model&quot;</span><span class="fu">:</span> <span class="st">&quot;ministral-lmstudio&quot;</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;object&quot;</span><span class="fu">:</span> <span class="st">&quot;chat.completion&quot;</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;system_fingerprint&quot;</span><span class="fu">:</span> <span class="st">&quot;mistralai/ministral-3-3b&quot;</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;choices&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;finish_reason&quot;</span><span class="fu">:</span> <span class="st">&quot;stop&quot;</span><span class="fu">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="st">&quot;The capital of Greece is **Athens**.&quot;</span><span class="fu">,</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;role&quot;</span><span class="fu">:</span> <span class="st">&quot;assistant&quot;</span><span class="fu">,</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;provider_specific_fields&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;refusal&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;provider_specific_fields&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;usage&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;completion_tokens&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;prompt_tokens&quot;</span><span class="fu">:</span> <span class="dv">539</span><span class="fu">,</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;total_tokens&quot;</span><span class="fu">:</span> <span class="dv">549</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;stats&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="connect-litellm-to-khoj">Connect LiteLLM to Khoj</h2>
+<p>You can use the same LiteLLM endpoint with any app that supports an
+OpenAI-style API. In this example, I use Khoj.</p>
+<p>Once LiteLLM is running, Khoj only needs one API configuration:</p>
+<ul>
+<li>Name: <code>litellm</code></li>
+<li>API key: <code>litellm</code></li>
+<li>API base URL: <code>http://127.0.0.1:4000/v1</code></li>
+</ul>
+<p>Then create a chat model in Khoj using one of the LiteLLM aliases,
+for example:</p>
+<ul>
+<li><code>ministral-lmstudio</code></li>
+</ul>
+<p>That is the key idea of this project: Khoj does not need to know
+whether the model is coming from LM Studio, vLLM, or Osaurus. It only
+talks to LiteLLM.</p>
+<h3 id="khoj-ai-model-api-configuration">Khoj AI model API
+configuration</h3>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/LiteLLM_API.png"
+alt="Khoj Lite LLM API setup" /></p>
+<h3 id="khoj-chat-model-configuration">Khoj chat model
+configuration</h3>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/LiteLLM_Model.png"
+alt="Khoj Lite LLM model setup" /></p>
+<h3 id="khoj-using-a-litellm-chat-model">Khoj using a LiteLLM chat
+model</h3>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/LiteLLM_Chat.png"
+alt="Khoj chat using Lite LLM" /></p>
+<hr />
+<p>That's it!</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#4EF5EE"></span>#4EF5EE</span>
+        <span class="swatch"><span class="dot" style="background:#B2AC5F"></span>#B2AC5F</span>
+        <span class="swatch"><span class="dot" style="background:#C5CFCC"></span>#C5CFCC</span>
+        <span class="swatch"><span class="dot" style="background:#1DCC20"></span>#1DCC20</span>
+        <span class="swatch"><span class="dot" style="background:#CD94E5"></span>#CD94E5</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

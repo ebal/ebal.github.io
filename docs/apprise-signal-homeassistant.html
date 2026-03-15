@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I Replaced Every Notification Service With Apprise</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #3515F8;
+      --c2: #1EA4A0;
+      --c3: #24AFA2;
+      --c4: #278862;
+      --c5: #2C70DA;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="i-replaced-every-notification-service-with-apprise">I Replaced
+Every Notification Service With Apprise</h1>
+<p>I can use apprise in Home Assistant and in my scripts and got signal,
+slack, email and many more working perfectly!</p>
+<p><strong>How I Built a Unified Notification Hub Using Apprise and
+Signal API</strong></p>
+<hr />
+<h2 id="the-problem-notification-chaos">The Problem: Notification
+Chaos</h2>
+<p>If you're like me, you probably have alerts coming from
+everywhere:</p>
+<ul>
+<li>Docker containers need to notify you when they crash</li>
+<li>Home Assistant wants to tell you when the door opens</li>
+<li>Monitoring scripts need to report when disk space is low</li>
+<li>Your Jellyfin server should alert you when transcoding fails</li>
+</ul>
+<p>The problem? Each service wants to send notifications differently.
+Some support email, others want webhooks, a few can do Slack, and almost
+none support Signal natively.</p>
+<p>Enter <strong>Apprise</strong> — the notification abstraction layer
+that changed how I handle alerts forever.</p>
+<hr />
+<h2 id="what-is-apprise">What is Apprise?</h2>
+<p><a href="https://github.com/caronc/apprise">Apprise</a> is a Python
+library (and API) that supports <strong>dozens of notification
+services</strong> through a single, unified interface. Think of it as a
+universal translator for notifications.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/Apprise.png"
+alt="Apprise Architecture" /></p>
+<p>As you can see in the diagram above, Apprise acts as a
+<strong>notification router</strong> sitting between your services and
+your notification targets:</p>
+<p><strong>Input Sources:</strong></p>
+<ul>
+<li>Docker Apps (Jellyfin, Nextcloud, etc.)</li>
+<li>Home Assistant</li>
+<li>Custom Scripts &amp; Monitoring Tools</li>
+<li>Automation Platforms (n8n, Node-RED)</li>
+</ul>
+<p><strong>Output Targets:</strong></p>
+<ul>
+<li>📱 ntfy (Mobile Alerts)</li>
+<li>💬 Slack</li>
+<li>📧 Email</li>
+<li>🔗 Webhooks</li>
+<li>📞 Signal (via signal-cli)</li>
+<li>📱 WhatsApp (Business API)</li>
+<li>🔐 Threema &amp; Viber</li>
+</ul>
+<p>And that's just a subset — Apprise supports 120+ notification
+services!</p>
+<hr />
+<h2 id="the-setup-apprise-api--signal">The Setup: Apprise API +
+Signal</h2>
+<p>In this guide, I'll show you how to set up:</p>
+<ol type="1">
+<li><strong>Apprise API</strong> — A REST API server for managing and
+sending notifications</li>
+<li><strong>Signal CLI REST API</strong> — A bridge to send messages via
+Signal</li>
+<li><strong>Integration</strong> — Connecting them so you can send
+Signal messages through Apprise</li>
+</ol>
+<h3 id="why-signal">Why Signal?</h3>
+<p>Signal offers end-to-end encryption, privacy-focused design, and most
+importantly — it's free for personal use. Perfect for receiving
+important alerts without relying on corporate platforms.</p>
+<hr />
+<h2 id="step-1-deploy-apprise-api">Step 1: Deploy Apprise API</h2>
+<p>Create a <code>docker-compose.yml</code> file for Apprise:</p>
+<blockquote>
+<p>I've selected TCP Port 8800 as I am already using 8000 on my
+homelab.</p>
+</blockquote>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">apprise-api</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> caronc/apprise:latest</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> apprise-api</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;8800:8000&quot;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> APPRISE_STATEFUL_MODE=simple</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> APPRISE_WORKER_COUNT=1</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> APPRISE_WORKER_OVERFLOW=10</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> LOG_LEVEL=info</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./apprise/config:/config</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./apprise/plugins:/plugin</span></span></code></pre></div>
+<p><strong>Key Configuration Explained:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>APPRISE_STATEFUL_MODE=simple</code></td>
+<td>Persists your notification configurations between restarts</td>
+</tr>
+<tr class="even">
+<td><code>APPRISE_WORKER_COUNT=1</code></td>
+<td>Single worker process (sufficient for home use)</td>
+</tr>
+<tr class="odd">
+<td><code>APPRISE_WORKER_OVERFLOW=10</code></td>
+<td>Queue overflow threshold for handling burst requests</td>
+</tr>
+<tr class="even">
+<td><code>LOG_LEVEL=info</code></td>
+<td>Balanced logging verbosity</td>
+</tr>
+</tbody>
+</table>
+<p>Start the service:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> up <span class="at">-d</span></span></code></pre></div>
+<p>Apprise API will now be available at
+<code>http://localhost:8800</code></p>
+<hr />
+<h2 id="step-2-deploy-signal-cli-rest-api">Step 2: Deploy Signal CLI
+REST API</h2>
+<p>Signal doesn't have a native API, but the community has created
+bridges. We'll use <a
+href="https://github.com/bbernhard/signal-cli-rest-api">signal-cli-rest-api</a>:</p>
+<blockquote>
+<p>again, I am using TCP Port 9922 as I am using 8080 on my homelab
+already.</p>
+</blockquote>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">signal-api</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> bbernhard/signal-cli-rest-api</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> signal-api</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> MODE=native</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./signalcli-data:/home/.local/share/signal-cli</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;9922:8080&quot;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span></code></pre></div>
+<p><strong>Important:</strong> The <code>MODE=native</code> setting uses
+the native Signal protocol library (libsignal) for better
+compatibility.</p>
+<p>Start the service:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> up <span class="at">-d</span></span></code></pre></div>
+<blockquote>
+<p>PS. You can merge the two docker compose services into one if you
+prefer.</p>
+</blockquote>
+<hr />
+<h2 id="step-3-link-your-signal-account">Step 3: Link Your Signal
+Account</h2>
+<p>Now for the magic — linking your Signal account to the API.</p>
+<p>Open your browser and navigate to:</p>
+<pre><code>http://localhost:9922/v1/qrcodelink?device_name=signal-api</code></pre>
+<p>This will produce a QR image, that you need to scan with your mobile
+Signal app.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/SignalAPI_QR.png"
+alt="Signal QR Code" /></p>
+<p>You'll see a QR code (similar to the one above, but not blurred).</p>
+<p><strong>To link:</strong></p>
+<ol type="1">
+<li>Open Signal on your <strong>phone</strong> (Android or iOS)</li>
+<li>Go to <strong>Settings → Linked Devices</strong></li>
+<li>Tap the <strong>+</strong> button to add a new device</li>
+<li>Scan the QR code</li>
+</ol>
+<p>Once linked, your Signal account is now accessible via REST API!</p>
+<hr />
+<h2 id="step-4-register-a-phone-number">Step 4: Register a Phone
+Number</h2>
+<p>Before sending messages, you need to register your phone number with
+Signal CLI. This is typically done automatically when you link the
+device, but if needed:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if your number is registered</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> http://localhost:9922/v1/about</span></code></pre></div>
+<hr />
+<h2 id="step-5-add-signal-to-apprise">Step 5: Add Signal to Apprise</h2>
+<p>Now we connect Signal to Apprise. Apprise uses URL schemes to
+represent notification targets.</p>
+<p>The <strong>Signal</strong> URL format is:</p>
+<pre><code>signal://&lt;signal-api-host&gt;:&lt;port&gt;/&lt;recipient-phone-number&gt;</code></pre>
+<p>Add your Signal configuration to Apprise:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-s</span> <span class="at">-X</span> POST http://127.0.0.1:8800/add/signal <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;urls=signal://localhost:9922/+306970000xyz&quot;</span></span></code></pre></div>
+<blockquote>
+<p>Replace <code>+306970000xyz</code> with your phone number!</p>
+</blockquote>
+<p>Expected response:</p>
+<pre><code>Successfully saved configuration</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Replace <code>+306970000xyz</code> with your
+actual phone number (in international format with <code>+</code>
+prefix).</p>
+</blockquote>
+<hr />
+<h2 id="step-6-send-your-first-notification">Step 6: Send Your First
+Notification</h2>
+<h3 id="option-a-using-the-apprise-cli">Option A: Using the Apprise
+CLI</h3>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">apprise</span> <span class="at">-vv</span> <span class="at">-t</span> <span class="st">&quot;Test Message Title&quot;</span> <span class="at">-b</span> <span class="st">&quot;Test Message Body&quot;</span> <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>   <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span></code></pre></div>
+<h3 id="option-b-using-the-apprise-api">Option B: Using the Apprise
+API</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:8800/notify <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;title&quot;: &quot;Test Message Title&quot;,</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;body&quot;: &quot;Test Message Body&quot;,</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;tag&quot;: &quot;signal&quot;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<h3 id="option-c-send-to-multiple-services-at-once">Option C: Send to
+Multiple Services at Once</h3>
+<p>Here's where Apprise shines — send the same message to Signal, Slack,
+and email with one command:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">apprise</span> <span class="at">-t</span> <span class="st">&quot;Server Alert&quot;</span> <span class="at">-b</span> <span class="st">&quot;Disk usage at 90%&quot;</span> <span class="dt">\</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span> <span class="dt">\</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;slack://token-a/token-b/token-c&quot;</span> <span class="dt">\</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;mailto://user:pass@gmail.com&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="the-result">The Result</h2>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/SignalAPI_MSG.png"
+alt="Signal Message Received" /></p>
+<p>As you can see, the test message arrived successfully in Signal with
+both the title and body intact. This message was sent programmatically
+through the Apprise → Signal pipeline!</p>
+<hr />
+<h2 id="real-world-use-cases">Real-World Use Cases</h2>
+<p>Now that you have the infrastructure set up, here are some practical
+applications:</p>
+<h3 id="home-assistant-notifications">Home Assistant Notifications</h3>
+<p>Add the below notify setup to your
+<code>configuration.yaml</code>:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ebal, Sun, 15 Mar 2026 21:06:52 +0200</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">notify</span><span class="kw">:</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> signal_notify</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">resource</span><span class="kw">:</span><span class="at"> http://localhost:8800/notify</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">url</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">platform</span><span class="kw">:</span><span class="at"> apprise</span></span></code></pre></div>
+<p>and create a new <strong>Automation</strong></p>
+<ol type="1">
+<li>Go to <strong>Settings → Automations &amp; scenes</strong></li>
+<li>Tap the <strong>+</strong> button to create a new automation</li>
+<li>Copy yaml code and replace your Device and Entity ID.</li>
+</ol>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">alias</span><span class="kw">:</span><span class="at"> Fridge Door Open</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">description</span><span class="kw">:</span><span class="at"> Send a message through Signal when Fridge Door is opened for more than 5sec</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> opened</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">device_id</span><span class="kw">:</span><span class="at"> &lt;device_id&gt;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">entity_id</span><span class="kw">:</span><span class="at"> &lt;entity_id&gt;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">domain</span><span class="kw">:</span><span class="at"> binary_sensor</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">trigger</span><span class="kw">:</span><span class="at"> device</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">for</span><span class="kw">:</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">hours</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">minutes</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">5</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="fu">conditions</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="fu">actions</span><span class="kw">:</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">action</span><span class="kw">:</span><span class="at"> notify.signal_notify</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">data</span><span class="kw">:</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">message</span><span class="kw">:</span><span class="at"> Fridge Door Open for more than 5sec</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> HomeAssistant Alert</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="fu">mode</span><span class="kw">:</span><span class="at"> single</span></span></code></pre></div>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/SignalAPI_HA.png"
+alt="Signal notify in Home Assistant" /></p>
+<h3 id="docker-container-monitoring">Docker Container Monitoring</h3>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># In your monitoring script</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> ps <span class="at">--format</span> <span class="st">&quot;{{.Names}}&quot;</span> <span class="kw">|</span> <span class="cf">while</span> <span class="bu">read</span> <span class="va">container</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$(</span><span class="ex">docker</span> inspect <span class="at">-f</span> <span class="st">&#39;{{.State.Running}}&#39;</span> <span class="va">$container)</span><span class="st">&quot;</span> <span class="ot">!=</span> <span class="st">&quot;true&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">apprise</span> <span class="at">-t</span> <span class="st">&quot;Container Down&quot;</span> <span class="at">-b</span> <span class="st">&quot;</span><span class="va">$container</span><span class="st"> has stopped&quot;</span> <span class="dt">\</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">fi</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<h3 id="automated-backup-alerts">Automated Backup Alerts</h3>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rsync</span> <span class="at">-av</span> /data /backup</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="va">$?</span> <span class="ot">-eq</span> 0 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="ex">apprise</span> <span class="at">-t</span> <span class="st">&quot;Backup Complete&quot;</span> <span class="at">-b</span> <span class="st">&quot;Daily backup finished successfully&quot;</span> <span class="dt">\</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="ex">apprise</span> <span class="at">-t</span> <span class="st">&quot;Backup FAILED&quot;</span> <span class="at">-b</span> <span class="st">&quot;Daily backup encountered errors&quot;</span> <span class="dt">\</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<h3 id="system-health-checks">System Health Checks</h3>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check disk space</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="va">USAGE</span><span class="op">=</span><span class="va">$(</span><span class="fu">df</span> / <span class="kw">|</span> <span class="fu">tail</span> <span class="at">-1</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">&#39;{print $5}&#39;</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">&#39;s/%//&#39;</span><span class="va">)</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="va">$USAGE</span> <span class="ot">-gt</span> 80 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="ex">apprise</span> <span class="at">-t</span> <span class="st">&quot;Disk Warning&quot;</span> <span class="at">-b</span> <span class="st">&quot;Root partition is </span><span class="va">${USAGE}</span><span class="st">% full&quot;</span> <span class="dt">\</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;signal://localhost:9922/+306970000xyz&quot;</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<hr />
+<h2 id="advanced-adding-more-notification-channels">Advanced: Adding
+More Notification Channels</h2>
+<p>The beauty of Apprise is that adding new notification targets is as
+simple as adding a new URL:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Slack</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:8800/add/slack <span class="dt">\</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;urls=slack://workspace/token&quot;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Email (Gmail)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:8800/add/email <span class="dt">\</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;urls=mailto://user:password@gmail.com&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Add ntfy (push notifications to mobile)</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:8800/add/ntfy <span class="dt">\</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;urls=ntfy://topic&quot;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Discord</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:8800/add/discord <span class="dt">\</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;urls=discord://webhook-id/webhook-token&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="signal-messages-not-sending">Signal Messages Not Sending</h3>
+<ol type="1">
+<li><p><strong>Check if Signal CLI is working:</strong></p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> http://localhost:9922/v1/about</span></code></pre></div></li>
+<li><p><strong>Verify your number is registered:</strong></p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> http://localhost:9922/v1/send +306970000xyz <span class="at">-d</span> <span class="st">&quot;message=test&quot;</span></span></code></pre></div></li>
+<li><p><strong>Check container logs:</strong></p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> logs signal-api</span></code></pre></div></li>
+</ol>
+<hr />
+<h3 id="thats-it-">That's it !</h3>
+<p>-Evaggelos Balaskas</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#3515F8"></span>#3515F8</span>
+        <span class="swatch"><span class="dot" style="background:#1EA4A0"></span>#1EA4A0</span>
+        <span class="swatch"><span class="dot" style="background:#24AFA2"></span>#24AFA2</span>
+        <span class="swatch"><span class="dot" style="background:#278862"></span>#278862</span>
+        <span class="swatch"><span class="dot" style="background:#2C70DA"></span>#2C70DA</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

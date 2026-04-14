@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protecting Your sites with Traefik's Fail2ban Plugin</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #27EF3C;
+      --c2: #139E2C;
+      --c3: #4089B4;
+      --c4: #92FF80;
+      --c5: #178F0E;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="protecting-your-sites-with-traefiks-fail2ban-plugin">Protecting
+Your sites with Traefik's Fail2ban Plugin</h1>
+<p>I was looking at my logs and analytics, and I saw something
+interesting. I had a few requests to these endpoints which they do not
+exist on my blog!</p>
+<pre><code>.git/config
+.aws/credentials
+.aws/config
+config.php</code></pre>
+<p>So I started looking into this ...</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/traefik_fail2ban_plugin.png"
+alt="traefik fail2ban plugin" /></p>
+<h2 id="prologue">prologue</h2>
+<p>On my old web server, I had an extensive defensing mechanism with mod
+security, fail2ban and many more. At some point I had some OWASP
+prevention mechanism, so I had them connected to fail2ban and fail2ban
+blocked IPs via iptables.</p>
+<p>On my new setup, I use traefik reverse proxy and I was thinking that
+for sure, there is a way to connect traefik with fail2ban. So after a
+quick research, I ended to fail2ban traefik plugin. Which does something
+similar to fail2ban, but it does not need fail2ban, iptables or nftables
+to block incoming traffic.</p>
+<h2 id="goal">goal</h2>
+<p>So, if you're running services behind Traefik, you've got a powerful
+tool right at your fingertips: the fail2ban plugin. Unlike the
+traditional Linux fail2ban package that operates at the kernel level
+with iptables, Traefik's fail2ban plugin works at the middleware
+level—meaning it can protect specific routes, integrate seamlessly with
+your containerized stack, and start banning malicious IPs within
+seconds.</p>
+<hr />
+<h2 id="prerequisites--how-the-plugin-works">Prerequisites &amp; How the
+Plugin Works</h2>
+<h3 id="what-you-need">What You Need</h3>
+<ul>
+<li><strong>Traefik 3.0 or later</strong> (the plugin requires <a
+href="https://doc.traefik.io/traefik/">traefik</a> experimental plugin
+system)</li>
+<li><strong>Basic familiarity with Traefik</strong> (routers, services,
+middleware concepts)</li>
+<li><strong>Docker Compose or Kubernetes</strong> (we'll focus on Docker
+in this guide)</li>
+<li><strong>Administrative access</strong> to your Traefik configuration
+files</li>
+</ul>
+<h3 id="the-traefik-fail2ban-plugin">The Traefik Fail2ban Plugin</h3>
+<p>If you're familiar with traditional fail2ban on Linux, Traefik's
+version works differently—and that's actually good news. Instead of
+relying on log file parsing and kernel-level packet filtering, the
+Traefik plugin watches HTTP responses in real-time at the
+<strong>middleware</strong> level. When it detects a pattern of failures
+(e.g., four 401 "Unauthorized" responses from the same IP within eg. 10
+minutes), it blocks that IP for a configurable duration for x hours.</p>
+<p>Here's the flow:</p>
+<pre><code>Incoming Request
+      ↓
+Traefik Router (matches domain/path)
+      ↓
+Middleware Chain (security headers → rate-limit → fail2ban)
+      ↓
+Fail2ban Plugin checks: Is this IP banned?
+      ├─→ YES: Return 403 Forbidden, block request
+      └─→ NO: Continue to backend service
+      ↓
+Backend responds (200, 401, 403, etc.)
+      ↓
+Fail2ban updates counters: Track failures by IP
+      ↓
+Threshold exceeded? Ban this IP for 3 hours</code></pre>
+<h3 id="key-advantages">Key Advantages</h3>
+<ul>
+<li><strong>Application-aware:</strong> Works at the HTTP level, not raw
+packets</li>
+<li><strong>URL-specific:</strong> Protect only sensitive routes; allow
+legitimate traffic to other endpoints</li>
+<li><strong>Dynamic:</strong> No service restarts needed; configuration
+reloads on-the-fly</li>
+<li><strong>Container-friendly:</strong> Zero external dependencies;
+runs inside your Traefik container</li>
+<li><strong>Flexible:</strong> Whitelist trusted IPs, customize ban
+duration, define custom rules per endpoint</li>
+</ul>
+<hr />
+<h2 id="installation--plugin-setup">Installation &amp; Plugin Setup</h2>
+<h3 id="add-the-plugin-to-your-traefik-configuration">Add the Plugin to
+Your Traefik Configuration</h3>
+<p>First, declare the <a
+href="https://github.com/tomMoulard/fail2ban">fail2ban plugin</a> in
+your <code>traefik.yml</code>. This tells Traefik where to find and how
+to load the plugin.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># traefik.yml</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">experimental</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">plugins</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">fail2ban</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">moduleName</span><span class="kw">:</span><span class="at"> github.com/tomMoulard/fail2ban</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">version</span><span class="kw">:</span><span class="at"> v0.9.0</span><span class="co">  # or use the latest stable version</span></span></code></pre></div>
+<h3 id="restart-traefik">Restart Traefik</h3>
+<p>After updating <code>traefik.yml</code>, restart the Traefik
+container:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> down traefik <span class="kw">&amp;&amp;</span> <span class="ex">docker-compose</span> up <span class="at">-d</span> traefik</span></code></pre></div>
+<h3 id="verify-plugin-initialization">Verify Plugin Initialization</h3>
+<p>Check the container logs for successful plugin loading:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> logs traefik <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-i</span> fail2ban</span></code></pre></div>
+<p>You should see output something like:</p>
+<pre><code>traefik | 2024-04-05 14:32:15 INF Loaded plugin fail2ban from github.com/tomMoulard/fail2ban@v0.9.0</code></pre>
+<p>If you see an error instead, verify:</p>
+<ul>
+<li>Traefik version is 3.0+</li>
+<li>Plugin module name is spelled correctly</li>
+<li>The version tag exists in the GitHub repository</li>
+</ul>
+<hr />
+<h2 id="configuration-building-your-protection-rules">Configuration:
+Building Your Protection Rules</h2>
+<p>Now comes the interesting part. Configuring what and how fail2ban
+protects your services. All middleware definitions live in
+<code>dynamic/</code> directory and usually in
+<code>middlewares.yml</code> or a similar file that Traefik loads from
+the <code>dynamic/</code> directory. For this blog post, we will use
+this file.</p>
+<h3 id="understanding-each-configuration-parameter">Understanding Each
+Configuration Parameter</h3>
+<p>Here's a complete fail2ban middleware definition with detailed
+explanations:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># etc_traefik/dynamic/middlewares.yml</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">http</span><span class="kw">:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">middlewares</span><span class="kw">:</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">my-fail2ban</span><span class="kw">:</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">plugin</span><span class="kw">:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">fail2ban</span><span class="kw">:</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">          # ALLOWLIST: IPs that bypass the plugin</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">allowlist</span><span class="kw">:</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">ip</span><span class="kw">:</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;::1&quot;</span><span class="co">                    # IPv6 localhost</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;127.0.0.1&quot;</span><span class="co">              # IPv4 localhost</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;10.0.0.5&quot;</span><span class="co">               # Your monitoring system</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;203.0.113.0/24&quot;</span><span class="co">         # Your corporate network</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">          # DENYLIST: IPs to proactively ban (optional)</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">denylist</span><span class="kw">:</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">ip</span><span class="kw">:</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;192.0.2.50&quot;</span><span class="co">             # Known attacker IP</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;198.51.100.0/24&quot;</span><span class="co">        # Suspicious range</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">          # RULES: The banning logic</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">          # ============================================</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">rules</span><span class="kw">:</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;true&quot;</span><span class="co">              # Enable/disable rule</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">bantime</span><span class="kw">:</span><span class="at"> 3h</span><span class="co">                  # Ban duration (3 hours)</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">findtime</span><span class="kw">:</span><span class="at"> 10m</span><span class="co">                # Time window for counting</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">maxretry</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;4&quot;</span><span class="co">                # Trigger ban after N failures</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">statuscode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;400,401,403-499&quot;</span><span class="co">  # Which codes = failure</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="co">            # ============================================</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="co">            # URL-SPECIFIC RULES (optional)</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a><span class="co">            # ============================================</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">urlregexps</span><span class="kw">:</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="fu">regexp</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;^/admin&quot;</span><span class="co">        # Protect /admin routes</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;block&quot;</span><span class="co">            # Immediate ban on match</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="kw">-</span><span class="at"> </span><span class="fu">regexp</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;^/api/auth&quot;</span><span class="co">     # Protect auth endpoints</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;block&quot;</span></span></code></pre></div>
+<h3 id="configuration-strategy-tuning-for-your-use-case">Configuration
+Strategy: Tuning for Your Use Case</h3>
+<p><strong>Choosing <code>maxretry</code>:</strong></p>
+<ul>
+<li><strong>For public API endpoints:</strong> Use <code>4–5</code>
+retries. Few legitimate users fail 4 times.</li>
+<li><strong>For admin panels:</strong> Use <code>3</code> retries. Admin
+accounts should rarely mistype passwords.</li>
+<li><strong>For sensitive operations (password reset):</strong> Use
+<code>2</code> retries. Minimize brute-force exposure.</li>
+</ul>
+<p>If <code>maxretry</code> is too low, legitimate users with forgotten
+passwords get blocked (false positives). Too high, and attackers get
+many free attempts.</p>
+<p><strong>Choosing <code>bantime</code>:</strong></p>
+<ul>
+<li><strong>3 hours:</strong> Balanced default. Long enough to deter
+automated attacks; short enough that legitimate users aren't locked out
+overnight.</li>
+<li><strong>1 hour:</strong> Faster recovery for false positives; less
+deterrent for attackers.</li>
+<li><strong>24 hours:</strong> Maximum security; risk of user
+frustration.</li>
+</ul>
+<p><strong>Choosing <code>findtime</code>:</strong></p>
+<ul>
+<li><strong>5–10 minutes:</strong> Standard for authentication. Most
+humans retry a few times within 10 minutes, then try again the next
+day.</li>
+<li><strong>30 minutes:</strong> If you expect bots to spread attacks
+over time (less common).</li>
+</ul>
+<p><strong>Monitoring IPs for the Allowlist:</strong> If you run
+monitoring software (Prometheus, Uptime Robot, etc.), add those IPs to
+your allowlist. Otherwise, repeated health checks triggering non-200
+responses will get your monitoring blocked!</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">allowlist</span><span class="kw">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">ip</span><span class="kw">:</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;127.0.0.1&quot;</span><span class="co">        # Localhost</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;10.0.1.10&quot;</span><span class="co">        # Your Prometheus instance</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;203.0.113.100/32&quot;</span><span class="co">  # UptimeRobot static IP</span></span></code></pre></div>
+<hr />
+<h2 id="url-specific-blocking-protecting-critical-routes">URL-Specific
+Blocking: Protecting Critical Routes</h2>
+<p>One of the plugin's most powerful features is the ability to apply
+different rules—or no rules at all—to specific URLs. This prevents false
+positives on high-traffic public endpoints while aggressively protecting
+authentication gateways.</p>
+<h3 id="real-world-scenarios">Real-World Scenarios</h3>
+<p>and part of my setup :)</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">http</span><span class="kw">:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">middlewares</span><span class="kw">:</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">my-fail2ban</span><span class="kw">:</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">plugin</span><span class="kw">:</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">fail2ban</span><span class="kw">:</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">allowlist</span><span class="kw">:</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">ip</span><span class="kw">:</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;::1&quot;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;127.0.0.1&quot;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;203.0.113.100&quot;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">denylist</span><span class="kw">:</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">ip</span><span class="kw">:</span><span class="at"> 192.168.0.0/24</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="at">                </span><span class="fu">rules</span><span class="kw">:</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">bantime</span><span class="kw">:</span><span class="at"> 3h</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;true&quot;</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">findtime</span><span class="kw">:</span><span class="at"> 10m</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">maxretry</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;4&quot;</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">statuscode</span><span class="kw">:</span><span class="at"> 400,401,403-499</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="fu">urlregexps</span><span class="kw">:</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="at">                    </span><span class="kw">-</span><span class="at"> </span><span class="fu">regexp</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;/do-not-access&quot;</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="at">                      </span><span class="fu">mode</span><span class="kw">:</span><span class="at"> block</span></span></code></pre></div>
+<hr />
+<h2 id="applying-fail2ban-plugin-to-multiple-services">Applying Fail2ban
+Plugin to Multiple Services</h2>
+<p>Now that you understand the configuration, let's apply it across your
+infrastructure. The key insight: <strong>define the middleware once,
+reference it everywhere</strong>.</p>
+<h3 id="apply-to-services">Apply to Services</h3>
+<p>In each service's routing configuration, reference the middleware by
+name. Here are three examples:</p>
+<p><strong>Example 1: Blog Admin Panel</strong></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># etc_traefik/dynamic/blog.yml</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">http</span><span class="kw">:</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">routers</span><span class="kw">:</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">blog-https</span><span class="kw">:</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">rule</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Host(`blog.example.com`)&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">service</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;blog-backend&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">entryPoints</span><span class="kw">:</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> websecure</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">tls</span><span class="kw">:</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">certResolver</span><span class="kw">:</span><span class="at"> letsencrypt</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">middlewares</span><span class="kw">:</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> security-headers@file</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> rate-limit@file</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> my-fail2ban@file</span><span class="co">          # &lt;--- Applied here</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">blog-http</span><span class="kw">:</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">rule</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Host(`blog.example.com`)&quot;</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">entryPoints</span><span class="kw">:</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> web</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">middlewares</span><span class="kw">:</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> redirect-to-https@file</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">blog-backend</span><span class="kw">:</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">loadBalancer</span><span class="kw">:</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">servers</span><span class="kw">:</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="kw">-</span><span class="at"> </span><span class="fu">url</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;http://blog:8080&quot;</span></span></code></pre></div>
+<h3 id="best-practices-for-middleware-ordering">Best Practices for
+Middleware Ordering</h3>
+<p>Order matters. Here's the recommended chain:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">middlewares</span><span class="kw">:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> security-headers@file</span><span class="co">    # First: Set HTTP headers (no performance impact)</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> rate-limit@file</span><span class="co">          # Second: Rate limit (broad protection against bots)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> my-fail2ban@file</span><span class="co">         # Third: Fail2ban (targeted protection against auth attacks)</span></span></code></pre></div>
+<p><strong>Why this order?</strong></p>
+<ol type="1">
+<li>Security headers are light and should run first.</li>
+<li>Rate-limiting stops bots before they generate many auth
+failures.</li>
+<li>Fail2ban picks up remaining aggressive auth attackers.</li>
+</ol>
+<hr />
+<h2 id="verifying-your-setup">Verifying Your Setup</h2>
+<p>Configuration is only half the battle.</p>
+<h3 id="test-banning-behavior">Test Banning Behavior</h3>
+<p>Simulate authentication failures and watch fail2ban trigger:</p>
+<p><code>curl -I https://blog.example.org</code></p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">HTTP/2</span> 200</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">cache-control:</span> no-store, no-cache, must-revalidate, post-check=0, pre-check=0</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">content-security-policy:</span> default-src https:<span class="kw">;</span> <span class="ex">script-src</span> <span class="st">&#39;self&#39;</span> <span class="st">&#39;unsafe-inline&#39;</span> <span class="st">&#39;unsafe-eval&#39;</span><span class="kw">;</span> <span class="ex">style-src</span> <span class="st">&#39;self&#39;</span> <span class="st">&#39;unsafe-inline&#39;</span><span class="kw">;</span> <span class="ex">font-src</span> <span class="st">&#39;self&#39;</span> data:<span class="kw">;</span> <span class="ex">connect-src</span> <span class="st">&#39;self&#39;</span><span class="kw">;</span> <span class="ex">frame-ancestors</span> <span class="st">&#39;none&#39;</span><span class="kw">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">content-type:</span> text/html<span class="kw">;</span> <span class="va">charset</span><span class="op">=</span>utf-8</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">date:</span> Fri, 10 Apr 2026 14:59:05 GMT</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ex">expires:</span> Thu, 19 Nov 1981 08:52:00 GMT</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">permissions-policy:</span> geolocation=<span class="er">(</span><span class="kw">)</span><span class="ex">,</span> microphone=<span class="er">(</span><span class="kw">)</span><span class="ex">,</span> camera=<span class="er">(</span><span class="kw">)</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ex">pragma:</span> no-cache</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="ex">server:</span> Apache/2.4.25 <span class="er">(</span><span class="ex">Debian</span><span class="kw">)</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ex">set-cookie:</span> fpsess_fp-8654f976=06c0e118e99442af9a7ebd89d04a2657<span class="kw">;</span> <span class="va">path</span><span class="op">=</span>/</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ex">strict-transport-security:</span> max-age=15768000<span class="kw">;</span> <span class="ex">includeSubDomains</span><span class="kw">;</span> <span class="ex">preload</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="ex">x-content-type-options:</span> nosniff</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="ex">x-frame-options:</span> DENY</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="ex">x-powered-by:</span> PHP/5.6.40</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="ex">x-xss-protection:</span> 1<span class="kw">;</span> <span class="va">mode</span><span class="op">=</span>block</span></code></pre></div>
+<h3 id="do-not-access">Do Not Access</h3>
+<p><code>curl -I https://blog.example.org/do-not-access</code></p>
+<pre><code>HTTP/2 429 
+
+content-security-policy: default-src https:; script-src &#39;self&#39; &#39;unsafe-inline&#39; &#39;unsafe-eval&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; font-src &#39;self&#39; data:; connect-src &#39;self&#39;; frame-ancestors &#39;none&#39;;
+permissions-policy: geolocation=(), microphone=(), camera=()
+strict-transport-security: max-age=15768000; includeSubDomains; preload
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-xss-protection: 1; mode=block
+date: Fri, 10 Apr 2026 15:02:47 GMT</code></pre>
+<p>So you will see the 429 status which is defined from fail2ban
+plugin</p>
+<p>now if you check again, nothing will be shown :</p>
+<pre><code>~&gt; curl https://blog.example.org
+~&gt;
+~&gt; </code></pre>
+<hr />
+<p>That's it my friends ! 🛡️</p>
+<blockquote>
+<p>Disclaimer: coding agent helped with the blog post but all technical
+notes and examples are mine.</p>
+</blockquote>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#27EF3C"></span>#27EF3C</span>
+        <span class="swatch"><span class="dot" style="background:#139E2C"></span>#139E2C</span>
+        <span class="swatch"><span class="dot" style="background:#4089B4"></span>#4089B4</span>
+        <span class="swatch"><span class="dot" style="background:#92FF80"></span>#92FF80</span>
+        <span class="swatch"><span class="dot" style="background:#178F0E"></span>#178F0E</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

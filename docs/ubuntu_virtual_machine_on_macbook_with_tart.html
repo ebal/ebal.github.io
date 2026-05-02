@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I want to run Ubuntu Virtual Machines on my Macbook</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #D67F80;
+      --c2: #D50B62;
+      --c3: #8920C8;
+      --c4: #7DAB3D;
+      --c5: #A16579;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="i-want-to-run-ubuntu-virtual-machines-on-my-macbook">I want to
+run Ubuntu Virtual Machines on my Macbook</h1>
+<p>I use multiple computers and multiple mobile devices. This is mostly
+because I like keeping my personal devices/accounts separated from my
+work-related things, also ... company policy. The last 4 years I am
+using an apple macbook, it's a managed and restricted device. With
+managed devices, a lot of features like virtualization, containers or
+even VPN, anything that has network access and many other functionality
+were restricted. Recently I got a replacement macbook, thanks to our IT,
+and now for the first time I can use my old device as an unmanaged
+macbook.</p>
+<p>Oh, I missed a lot!</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/so_it_begins.gif"
+alt="so_it_begins" /></p>
+<h2 id="tart">Tart</h2>
+<p>To start my journey, I want to quickly spawn virtual machines (mostly
+ubuntu server) to test/run self hosted applications. I found <a
+href="https://tart.run">Tart Virtualization</a> to be excellent for
+this.</p>
+<blockquote>
+<p>Tart is a virtualization toolset to build, run and manage macOS and
+Linux virtual machines on Apple Silicon.</p>
+</blockquote>
+<p>To install and use tart is extremely easy:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install cirruslabs/cli/tart</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> clone ghcr.io/cirruslabs/macos-tahoe-base:latest tahoe-base</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> run tahoe-base</span></code></pre></div>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/tart_tahoe.png"
+alt="tart_tahoe" /></p>
+<h2 id="ubuntu-virtual-machine">Ubuntu virtual machine</h2>
+<p>is very easy to setup an ubuntu virtual machine with tart, as an
+ubuntu image already exist</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> clone ghcr.io/cirruslabs/ubuntu:24.04 ubuntu</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> set ubuntu <span class="at">--disk-size</span> 20</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> run ubuntu</span></code></pre></div>
+<p>and the default credentials are:</p>
+<p>Username: <code>admin</code> Password: <code>admin</code></p>
+<blockquote>
+<p>caveat: Change them if you are going to use them in production.</p>
+</blockquote>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/tart_ubuntu.png"
+alt="tart_ubuntu" /></p>
+<h2 id="we-can-also-change-the-default-values">We can also change the
+default values</h2>
+<p>like cpu and/or memory settings, as disk size above</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> tart set ubuntu <span class="at">--memory</span> 8192</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> tart set ubuntu <span class="at">--cpu</span> 4</span></code></pre></div>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/tart_ubuntu_specs.png"
+alt="tart_specs" /></p>
+<h2 id="we-can-start-the-vm-without-graphics">We can start the VM
+without graphics</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> tart run ubuntu <span class="at">--no-graphics</span> <span class="kw">&amp;</span></span></code></pre></div>
+<h3 id="is-this-vm-running-">Is this vm running ?</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">✦</span> ❯ tart list <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-i</span> ubuntu</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">local</span>  <span class="va">ubuntu</span>                                      20   3    6 <span class="va">seconds</span> <span class="va">ago</span> <span class="va">running</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ex">OCI</span>    ghcr.io/cirruslabs/ubuntu:24.04             20   5    14 hours ago  stopped</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">OCI</span>    ghcr.io/cirruslabs/ubuntu@sha256:9e71b46... 20   5    14 hours ago  stopped</span></code></pre></div>
+<h2 id="we-can-find-the-ip-of-the-virtual-machine">We can find the IP of
+the virtual machine</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">✦</span> ❯ tart ip ubuntu</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">192.168.64.2</span></span></code></pre></div>
+<h2 id="-and-we-can-ssh-into-the-vm">... and we can ssh into the VM</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">✦</span> ❯ ssh admin@<span class="va">$(</span><span class="ex">tart</span> ip ubuntu<span class="va">)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">admin@192.168.64.2</span><span class="st">&#39;s password:</span></span></code></pre></div>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/tart_ubuntu_ssh.png"
+alt="tart_ssh" /></p>
+<h2 id="we-can-even-add-it-to-our-tailscale-network">We can even add it
+to our tailscale network</h2>
+<p>I guess you already know how to add machines to your tailnet</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/tart_ubuntu_tailscale.png"
+alt="tart_tailscale" /></p>
+<p>and don't forget to stop or delete your VMs if you do not need
+them</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> stop ubuntu</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tart</span> delete ubuntu</span></code></pre></div>
+<p>It works ! Evaggelos</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#D67F80"></span>#D67F80</span>
+        <span class="swatch"><span class="dot" style="background:#D50B62"></span>#D50B62</span>
+        <span class="swatch"><span class="dot" style="background:#8920C8"></span>#8920C8</span>
+        <span class="swatch"><span class="dot" style="background:#7DAB3D"></span>#7DAB3D</span>
+        <span class="swatch"><span class="dot" style="background:#A16579"></span>#A16579</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

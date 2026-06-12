@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build your own ChatGPT-like for free</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #001350;
+      --c2: #F43A40;
+      --c3: #A5FAB3;
+      --c4: #2085BD;
+      --c5: #271E7C;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="build-your-own-chatgpt-like-for-free">Build your own
+ChatGPT-like for free</h1>
+<p>I want a simple way to experiment with LLMs from my (very old)
+<strong>archlinux</strong> machine that has no GPU. OpenRouter provides
+a pay-as-you-go solution by selecting the model you want for the job you
+need. It's quite easy and also provides some free models! </p>
+<h2 id="important-limitation">Important limitation</h2>
+<p>Free OpenRouter models usually have rate limits, availability limits,
+and sometimes slower routing. Some may disappear, change provider, or
+become temporarily unavailable. It's not always reliable.</p>
+<h2 id="running-open-webui-with-openrouter-free-models">Running Open
+WebUI with OpenRouter Free Models</h2>
+<p>In this post we will build a simple local AI chat setup using
+<strong>Open WebUI</strong>, <strong>LiteLLM</strong>, and
+<strong>OpenRouter free models</strong>.</p>
+<p>The goal is to have a clean web interface where we can chat with an
+OpenRouter model, while LiteLLM acts as a small proxy layer between Open
+WebUI and OpenRouter.</p>
+<blockquote>
+<p><strong>Disclaimer</strong>: You do not need LiteLLM. OpenRouter
+provides an OpenAI API. I am going to share both setups, as I use
+LiteLLM as a proxy for other use cases too.</p>
+</blockquote>
+<p>The final architecture looks like this:</p>
+<pre class="text"><code>Browser
+  -&gt; Open WebUI
+  -&gt; OpenRouter
+  -&gt; Free LLM model</code></pre>
+<p>or with LiteLLM</p>
+<pre class="text"><code>Browser
+  -&gt; Open WebUI
+  -&gt; LiteLLM
+  -&gt; OpenRouter
+  -&gt; Free LLM model</code></pre>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/openwebui_litellm_openrouter_diagram.png"
+alt="openwebui_litellm_openrouter" /></p>
+<h2 id="what-are-we-building">What are we building?</h2>
+<p>We are going to run two containers:</p>
+<ol type="1">
+<li><p><strong>LiteLLM</strong>    A lightweight proxy that exposes an
+OpenAI-compatible API and forwards requests to OpenRouter or to any
+other LLM provider.</p></li>
+<li><p><strong>Open WebUI</strong>    A self-hosted ChatGPT-like web
+interface that connects either to OpenRouter and/or to LiteLLM.</p></li>
+</ol>
+<ul>
+<li>Open WebUI will talk to OpenRouter in scenario A.</li>
+<li>Open WebUI will talk to LiteLLM, and LiteLLM will talk to OpenRouter
+in scenario B.</li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<p>You need:</p>
+<ul>
+<li>Docker</li>
+<li>Docker Compose</li>
+<li>An OpenRouter account</li>
+<li>An OpenRouter API key</li>
+</ul>
+<p>You can create an API key from your OpenRouter account settings.</p>
+<h2 id="project-files">Project files</h2>
+<p>Create a new directory for the project:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> openwebui</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> openwebui</span></code></pre></div>
+<h3 id="scenario-a---openwebui-with-openrouter">Scenario A - OpenWebUI
+with OpenRouter</h3>
+<p>We will create a single docker compose file:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">openwebui</span><span class="kw">:</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> ghcr.io/open-webui/open-webui:main-slim</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> openwebui</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;8080:8080&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> open-webui:/app/backend/data</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">open-webui</span><span class="kw">:</span></span></code></pre></div>
+<p>In this scenario, I use Open WebUI slim edition.</p>
+<p>Open WebUI provides a slim variant designed to reduce the initial
+container size by excluding pre-bundled AI models and heavy
+dependencies. Smaller initial size, but the first startup may take
+longer as the container downloads these necessary models.</p>
+<h4 id="start-openwebui">Start OpenWebUI</h4>
+<p>Run:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> up <span class="at">-d</span></span></code></pre></div>
+<p>Check that both containers are running:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> ps</span></code></pre></div>
+<p>You should see something like:</p>
+<pre><code>❯ docker compose -v ps -a
+
+NAME      IMAGE                                    COMMAND          SERVICE    CREATED         STATUS   PORTS
+openwebui ghcr.io/open-webui/open-webui:main-slim  &quot;bash start.sh&quot;  openwebui  31 minutes ago  Up 30 minutes (healthy)   0.0.0.0:8080-&gt;8080/tcp,  [::]:8080-&gt;8080/tcp
+</code></pre>
+<h4 id="setup-openwebui-to-operouter">Setup OpenWebUI to OpeRouter</h4>
+<p>In bottom left, Go to:
+<code>Admin settings --&gt; Settings --&gt; Admin Settings --&gt; Connections</code></p>
+<p>Add OpenRouter as below</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/openwebui_openrouter.png"
+alt="openwebui openrouter" /></p>
+<h4 id="openwebui-with-openrouter">openwebui with openrouter</h4>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/openwebui_free.png"
+alt="openwebui free models" /></p>
+<h3 id="scenario-β---openwebui-with-litellm-to-openrouter">Scenario Β -
+OpenWebUI with LiteLLM to OpenRouter</h3>
+<p>We will create three files:</p>
+<pre class="text"><code>.env
+docker-compose.yml
+litellm_config.yaml</code></pre>
+<h4 id="environment-file">Environment file</h4>
+<p>Create a file named <code>.env</code>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> .env <span class="op">&lt;&lt;&#39;EOF&#39;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="st">OPENROUTER_API_KEY=sk-...</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="st">OPENROUTER_BASE_URL=&quot;https://openrouter.ai/api/v1&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="st">OPENROUTER_MODEL=&quot;openrouter/openrouter/free&quot;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="st">OPENROUTER_MODEL_NAME=&quot;openrouter-free&quot;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>Replace this value with your real OpenRouter API key:</p>
+<pre class="text"><code>sk-...</code></pre>
+<blockquote>
+<p>The simplest way to get free inference is with
+<code>openrouter/free</code> which is a router that selects free models
+at random from the models available on OpenRouter.</p>
+</blockquote>
+<h4 id="litellm-configuration">LiteLLM configuration</h4>
+<p>Create <code>litellm_config.yaml</code>:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> litellm_config.yaml <span class="op">&lt;&lt;&#39;EOF&#39;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="st">model_list:</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="st">  - model_name: os.environ/OPENROUTER_MODEL_NAME</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="st">    litellm_params:</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="st">      model: os.environ/OPENROUTER_MODEL</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="st">      api_base: os.environ/OPENROUTER_API_BASE</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="st">      api_key: os.environ/OPENROUTER_API_KEY</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>This file tells LiteLLM:</p>
+<ul>
+<li>expose a local model called <code>openrouter-free</code></li>
+<li>forward requests to OpenRouter</li>
+<li>use the OpenRouter model defined in <code>.env</code></li>
+<li>authenticate using the OpenRouter API key</li>
+</ul>
+<p>So Open WebUI does not need to know the exact OpenRouter model name.
+It only talks to LiteLLM.</p>
+<h4 id="docker-compose-file">Docker Compose file</h4>
+<p>Create <code>docker-compose.yml</code>:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> docker-compose.yml <span class="op">&lt;&lt;&#39;EOF&#39;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="st">---</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="st">services:</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="st">  litellm:</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="st">    image: docker.litellm.ai/berriai/litellm:main-latest</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="st">    container_name: litellm</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="st">    command: --config /app/config.yaml # --detailed_debug</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="st">    volumes:</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="st">      - ./litellm_config.yaml:/app/config.yaml:ro</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="st">    restart: unless-stopped</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="st">    env_file:</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="st">      - .env</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="st">  openwebui:</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="st">    image: ghcr.io/open-webui/open-webui:main-slim</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="st">    container_name: openwebui</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="st">    ports:</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="st">      - &quot;8080:8080&quot;</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="st">    volumes:</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="st">      - open-webui:/app/backend/data</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="st">    depends_on:</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="st">      litellm:</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="st">        condition: service_started</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="st">volumes:</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a><span class="st">  open-webui:</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>This starts two services.</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> up <span class="at">-d</span></span></code></pre></div>
+<p>Keeping the same volume means that keeps your Open WebUI settings,
+users, and chat history even if the container is recreated.</p>
+<h2 id="configure-open-webui">Configure Open WebUI</h2>
+<p>Open your browser and go to the admin settings and configure the
+OpenAI-compatible connection.</p>
+<p>Use this as the API base URL:</p>
+<pre class="text"><code>http://litellm:4000</code></pre>
+<p>Depending on your Open WebUI version, it may ask for the full
+OpenAI-compatible base URL. In that case use:</p>
+<pre class="text"><code>http://litellm:4000/v1</code></pre>
+<h2 id="test-the-setup">Test the setup</h2>
+<p>In Open WebUI, start a new chat. If everything is configured
+correctly, Open WebUI will send the message to LiteLLM, LiteLLM will
+forward it to OpenRouter, and the model response will appear in your
+browser.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/openwebui_litellm_openrouter.png"
+alt="openwebui litellm_openrouter" /></p>
+<h2 id="the-openrouter-model-does-not-respond">The OpenRouter model does
+not respond</h2>
+<blockquote>
+<p>Free OpenRouter models can have rate limits, queueing, or temporary
+availability issues.</p>
+</blockquote>
+<p>Try another free model from OpenRouter and update:</p>
+<pre class="env"><code>OPENROUTER_MODEL=openrouter/openai/gpt-oss-120b:free</code></pre>
+<p>Then restart:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose restart litellm</span></code></pre></div>
+<p>and check LiteLLM logs with:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose logs <span class="at">-f</span> litellm</span></code></pre></div>
+<p>That's it ! Evaggelos</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#001350"></span>#001350</span>
+        <span class="swatch"><span class="dot" style="background:#F43A40"></span>#F43A40</span>
+        <span class="swatch"><span class="dot" style="background:#A5FAB3"></span>#A5FAB3</span>
+        <span class="swatch"><span class="dot" style="background:#2085BD"></span>#2085BD</span>
+        <span class="swatch"><span class="dot" style="background:#271E7C"></span>#271E7C</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Run Linux containers on your macbook with Apple container</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #CEF650;
+      --c2: #812FC7;
+      --c3: #AE8512;
+      --c4: #364340;
+      --c5: #38FBE1;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="run-linux-containers-on-your-macbook-with-apple-container">Run
+Linux containers on your macbook with Apple container</h1>
+<p>Containers is an package application with all the files, libraries,
+and runtime it needs. They are a common way to develop, test, and deploy
+server software, most known are docker containers at the moment and in
+macOS the two most common tools: Docker desktop and OrbStack.</p>
+<p>Apple’s <code>container</code> tool takes a different approach: it
+creates and runs Linux containers using lightweight virtual machines on
+Apple silicon Macs. It works with OCI-compatible images, so you can pull
+images from standard registries and build images that can run in other
+OCI-compatible tools.</p>
+<p>This guide walks through installing <code>container</code>, starting
+the system service, running an Ubuntu shell, and building a simple
+“Hello, world” web server.</p>
+<h2 id="what-you-need">What you need</h2>
+<ul>
+<li>A Mac with <strong>Apple silicon</strong>: M1, M2, M3, M4, or
+newer</li>
+<li><strong>macOS 26</strong></li>
+<li>Administrator access to install the tool</li>
+</ul>
+<p>Apple supports <code>container</code> on macOS 26 because it depends
+on newer virtualization and networking features. Older macOS versions
+may work for some workflows, but they are not officially supported.
+Command availability can also vary by macOS version.</p>
+<h2 id="install-container">Install <code>container</code></h2>
+<p>Download the latest signed installer from the Apple
+<code>container</code> GitHub releases page:</p>
+<p><a href="https://github.com/apple/container/releases"><a
+href="https://github.com/apple/container/releases">https://github.com/apple/container/releases</a></a></p>
+<p>Open the <code>.pkg</code> file and follow the installer prompts.</p>
+<p>follow the below instracturions</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/apple.container.install.01.png"
+alt="Apple container install 01" /></p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/apple.container.install.02.png"
+alt="Apple container install 02" /></p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/apple.container.install.03.png"
+alt="Apple container install 03" /></p>
+<p>After installation, open Terminal and start the system service:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> system start</span></code></pre></div>
+<p>The first time you run this command, <code>container</code> may ask
+whether you want to install a recommended Linux kernel. Type
+<code>y</code> and press Enter.</p>
+<p>Example output:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> container system start</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Launching</span> container-apiserver...</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Testing</span> access to container-apiserver...</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Verifying</span> machine API server is running...</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">No</span> default kernel configured.</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="ex">Install</span> the recommended default kernel from [https://github.com/kata-containers/kata-containers/releases/download/3.28.0/kata-static-3.28.0-arm64.tar.zst]<span class="pp">?</span> [Y/n]: y</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">Installing</span> kernel...</span></code></pre></div>
+<p>Check that the service is running:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> system status</span></code></pre></div>
+<p>output:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> container system status</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">FIELD</span>              VALUE</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">status</span>             running</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">appRoot</span>            /Users/A93162639/Library/Application Support/com.apple.container/</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">installRoot</span>        /usr/local/</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ex">logRoot</span>            </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="ex">apiserver.version</span>  container-apiserver version 1.0.0 <span class="er">(</span><span class="ex">build:</span> release, commit: ee848e3<span class="kw">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ex">apiserver.commit</span>   ee848e3ebfd7c73b04dd419683be54fb450b8779</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ex">apiserver.build</span>    release</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="ex">apiserver.appName</span>  container-apiserver</span></code></pre></div>
+<p>Then list all containers:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> list <span class="at">--all</span></span></code></pre></div>
+<p>An empty table is fine. It means the service is running and you have
+not created any containers yet.</p>
+<h2 id="test-it-with-an-ubuntu-shell">Test it with an Ubuntu shell</h2>
+<p>Now run your first Linux container and attach an interactive
+shell:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> run <span class="at">-it</span> ubuntu:latest /bin/bash</span></code></pre></div>
+<p>Inside the container, try:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">uname</span> <span class="at">-a</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> /etc/os-release</span></code></pre></div>
+<p>You should see Linux system information and Ubuntu release
+details:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">root@9bb5a5b9-40a6-4a55-8093-f76c7d70c8eb:/#</span> uname <span class="at">-a</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Linux</span> 9bb5a5b9-40a6-4a55-8093-f76c7d70c8eb 6.18.15 <span class="co">#1 SMP Tue Mar 17 01:36:53 UTC 2026 aarch64 GNU/Linux</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">root@9bb5a5b9-40a6-4a55-8093-f76c7d70c8eb:/#</span> cat /etc/os-release</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="va">PRETTY_NAME</span><span class="op">=</span><span class="st">&quot;Ubuntu 26.04 LTS&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="va">NAME</span><span class="op">=</span><span class="st">&quot;Ubuntu&quot;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION_ID</span><span class="op">=</span><span class="st">&quot;26.04&quot;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION</span><span class="op">=</span><span class="st">&quot;26.04 LTS&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="va">ID</span><span class="op">=</span>ubuntu</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="va">ID_LIKE</span><span class="op">=</span>debian</span></code></pre></div>
+<p>Your Ubuntu version and kernel version may differ depending on when
+you run the command. The important part is that you are inside a Linux
+environment running on your Mac.</p>
+<p>Exit the container:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exit</span></span></code></pre></div>
+<h3 id="limit-resources-cpu---mem">Limit Resources: CPU - MEM</h3>
+<p>Another useful feature is when you want to limut resources, like CPU
+and Memory inside the apple container. You can simple do that by:</p>
+<p><code>container run -it --cpus 2 --memory 2G ubuntu:latest /bin/bash</code></p>
+<p>result:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">root@e3beed8c-42f0-4aaa-8fc6-e1d8d969641f:/#</span> top <span class="at">-bn1</span> <span class="at">-1</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">top</span> <span class="at">-</span> 21:03:33 up 0 min,  0 users,  load average: 0.06, 0.02, 0.00</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Tasks:</span>   2 total,   1 running,   1 sleeping,   0 stopped,   0 zombie</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">%Cpu0</span>  :  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st   </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">%Cpu1</span>  :  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 s</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="ex">%Cpu2</span>  :  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st </span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="ex">MiB</span> Mem :   2113.3 total,   1909.6 free,     71.0 used,    154.2 buff/cache       MiB Swap:      0.0 total,      0.0 free,      0.0 used.   2042.3 avail Mem </span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">PID</span> USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="ex">1</span> root      20   0    5128   3808   3280 S   0.0   0.2   0:00.01 bash</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>      <span class="ex">9</span> root      20   0    7060   4452   2548 R   0.0   0.2   0:00.00 top</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="ex">root@e3beed8c-42f0-4aaa-8fc6-e1d8d969641f:/#</span> grep <span class="at">-c</span> ^processor /proc/cpuinfo </span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="ex">root@291ed90e-621e-460e-ae70-73f4befcb0a4:/#</span> free </span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>               <span class="ex">total</span>        used        free      shared  buff/cache   available</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="ex">Mem:</span>         2163972       68876     1959220           4      157972     2095096</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="ex">Swap:</span>              0           0           0</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="ex">root@291ed90e-621e-460e-ae70-73f4befcb0a4:/#</span> </span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="ex">root@291ed90e-621e-460e-ae70-73f4befcb0a4:/#</span> </span></code></pre></div>
+<p>Now list running containers:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> list</span></code></pre></div>
+<p>You may see an empty table because the Ubuntu shell exited. To
+include stopped containers, run:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> list <span class="at">--all</span></span></code></pre></div>
+<p>Example:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ID</span>                                    IMAGE                            OS     ARCH   STATE    IP  CPUS  MEMORY   STARTED</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">9bb5a5b9-40a6-4a55-8093-f76c7d70c8eb</span>  docker.io/library/ubuntu:latest  linux  arm64  stopped      4     1024 MB  2026-06-24T20:15:59Z</span></code></pre></div>
+<h2 id="build-a-hello-world-web-server">Build a “Hello, world” web
+server</h2>
+<p>Next, build a tiny Python web server image.</p>
+<p>Create a new project directory:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> hello-container</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> hello-container</span></code></pre></div>
+<p>Create a file called <code>Dockerfile</code>:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">touch</span> Dockerfile</span></code></pre></div>
+<p>Open it in your editor and paste:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> docker.io/python:alpine</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WORKDIR</span> /app</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="bu">echo</span> <span class="st">&#39;&lt;h1&gt;Hello from Apple container!&lt;/h1&gt;&#39;</span> <span class="op">&gt;</span> index.html</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="kw">CMD</span> [<span class="st">&quot;python3&quot;</span>, <span class="st">&quot;-m&quot;</span>, <span class="st">&quot;http.server&quot;</span>, <span class="st">&quot;80&quot;</span>]</span></code></pre></div>
+<p>This image starts from a lightweight Python base image, creates a
+simple HTML page, and runs Python’s built-in web server on port 80.</p>
+<h2 id="build-the-image">Build the image</h2>
+<p>From the same directory as your <code>Dockerfile</code>, run:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> build <span class="at">--tag</span> hello-web <span class="at">--file</span> Dockerfile .</span></code></pre></div>
+<p>The <code>.</code> at the end tells the builder to use the current
+directory as the build context. The command pulls the base image, runs
+the Dockerfile instructions, and tags the result as
+<code>hello-web</code>.</p>
+<p>After your first build, you may see a builder container when you list
+containers. That is expected; <code>container</code> uses it to build
+images.</p>
+<h2 id="run-the-web-server">Run the web server</h2>
+<p>Start the container in the background:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> run <span class="at">--name</span> my-site <span class="at">--detach</span> <span class="at">--rm</span> hello-web</span></code></pre></div>
+<p>Here’s what the flags mean:</p>
+<ul>
+<li><code>--name my-site</code> gives the container a friendly
+name.</li>
+<li><code>--detach</code> runs it in the background.</li>
+<li><code>--rm</code> automatically removes the container when it
+stops.</li>
+</ul>
+<p>List running containers:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> list</span></code></pre></div>
+<p>Look for the IP address in the <code>IP</code> column. It may look
+something like this:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ID</span>        IMAGE                                                OS     ARCH   STATE    IP               CPUS  MEMORY   STARTED</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">my-site</span>   hello-web:latest                                     linux  arm64  running  192.168.64.4/24  4     1024 MB  2026-06-24T20:28:15Z</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="ex">buildkit</span>  ghcr.io/apple/container-builder-shim/builder:0.12.0  linux  arm64  running  192.168.64.3/24  2     2048 MB  2026-06-24T20:27:48Z</span></code></pre></div>
+<p>Open the site in your browser:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">open</span> http://192.168.64.4</span></code></pre></div>
+<p>Replace <code>192.168.64.4</code> with the IP address shown on your
+machine.</p>
+<p>You should see:</p>
+<pre class="text"><code>Hello from Apple container!</code></pre>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/apple.container.IP.png"
+alt="Apple container IP" /></p>
+<h2 id="optional-use-localhost-instead">Optional: use localhost
+instead</h2>
+<p>If you prefer opening the site through <code>localhost</code>,
+publish the container port to your Mac. The <code>container run</code>
+command supports <code>--publish</code> / <code>-p</code> for mapping a
+container port to a host port.</p>
+<p>Stop the current container first:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> stop my-site</span></code></pre></div>
+<p>Then run it again with port publishing:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> run <span class="at">--name</span> my-site <span class="at">--detach</span> <span class="at">--rm</span> <span class="at">--publish</span> 8080:80 hello-web</span></code></pre></div>
+<p>Open:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">open</span> http://localhost:8080</span></code></pre></div>
+<p>This maps port <code>8080</code> on your Mac to port <code>80</code>
+inside the container.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/apple.container.localhost.png"
+alt="Apple container install 03" /></p>
+<h2 id="view-logs">View logs</h2>
+<p>To see what the web server is logging, run:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> logs my-site</span></code></pre></div>
+<p>You should see HTTP request logs from Python’s web server.</p>
+<p>result:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> container logs my-site</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ex">192.168.64.1</span> <span class="at">-</span> <span class="at">-</span> [24/Jun/2026 20:36:03] <span class="st">&quot;GET / HTTP/1.1&quot;</span> 200 <span class="at">-</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="ex">192.168.64.1</span> <span class="at">-</span> <span class="at">-</span> [24/Jun/2026 20:36:03] code 404, message File not found</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="ex">192.168.64.1</span> <span class="at">-</span> <span class="at">-</span> [24/Jun/2026 20:36:03] <span class="st">&quot;GET /favicon.ico HTTP/1.1&quot;</span> 404 <span class="at">-</span></span></code></pre></div>
+<h2 id="clean-up">Clean up</h2>
+<p>Stop the container:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> stop my-site</span></code></pre></div>
+<p>Because you started it with <code>--rm</code>, <code>container</code>
+removes it automatically after it stops.</p>
+<p>Check again:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> list <span class="at">--all</span></span></code></pre></div>
+<p>The <code>my-site</code> container should no longer appear.</p>
+<p>That's it, Evaggelos!</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#CEF650"></span>#CEF650</span>
+        <span class="swatch"><span class="dot" style="background:#812FC7"></span>#812FC7</span>
+        <span class="swatch"><span class="dot" style="background:#AE8512"></span>#AE8512</span>
+        <span class="swatch"><span class="dot" style="background:#364340"></span>#364340</span>
+        <span class="swatch"><span class="dot" style="background:#38FBE1"></span>#38FBE1</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

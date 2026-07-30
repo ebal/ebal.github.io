@@ -1,0 +1,347 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MARKDOWN_DIR="markdown"
+DOCS_DIR="docs"
+INDEX_FILE="$DOCS_DIR/index.html"
+POST_CSS_FILE="$DOCS_DIR/post.css"
+GITHUB_IMG_BASE_URL="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img"
+
+if ! command -v pandoc >/dev/null 2>&1; then
+  echo "Error: pandoc is required but was not found in PATH."
+  exit 1
+fi
+
+if [[ ! -d "$MARKDOWN_DIR" ]]; then
+  echo "Error: markdown directory not found: $MARKDOWN_DIR"
+  exit 1
+fi
+
+if [[ ! -d "$DOCS_DIR" ]]; then
+  echo "Error: docs directory not found: $DOCS_DIR"
+  exit 1
+fi
+
+if [[ ! -f "$INDEX_FILE" ]]; then
+  echo "Error: index file not found: $INDEX_FILE"
+  exit 1
+fi
+
+rand_color() {
+  printf '#%06X' "$((RANDOM * RANDOM % 16777216))"
+}
+
+slug_to_title() {
+  local slug="$1"
+  echo "$slug" | tr '_-' '  ' | awk '{
+    out=""
+    for (i = 1; i <= NF; i++) {
+      w = $i
+      out = out (i > 1 ? " " : "") toupper(substr(w, 1, 1)) substr(w, 2)
+    }
+    print out
+  }'
+}
+
+extract_title() {
+  local md_file="$1"
+  local fallback="$2"
+  local title
+  title="$(awk '/^# / {sub(/^# /, "", $0); print; exit}' "$md_file" || true)"
+  if [[ -z "$title" ]]; then
+    title="$fallback"
+  fi
+  echo "$title"
+}
+
+html_escape() {
+  sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
+rewrite_local_img_urls() {
+  sed -E \
+    -e "s#src=\"((\\./|\\.\\./)*)img/+([^\"]+)\"#src=\"$GITHUB_IMG_BASE_URL/\\3\"#g" \
+    -e "s#src='((\\./|\\.\\./)*)img/+([^']+)'#src='$GITHUB_IMG_BASE_URL/\\3'#g"
+}
+
+# Publish date/order come from git history (first commit that added the file),
+# not mtime: git checkout does not preserve mtimes, so a fresh clone gives
+# every file the same checkout-time mtime and destroys chronological order.
+# Falls back to mtime only for files git has no history for yet (new, uncommitted posts).
+md_epoch() {
+  local md_file="$1"
+  local epoch=""
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    epoch="$(git log --follow --format=%at -- "$md_file" 2>/dev/null | tail -1 || true)"
+  fi
+  if [[ -z "$epoch" ]]; then
+    epoch="$(date -r "$md_file" '+%s' 2>/dev/null || stat -c '%Y' "$md_file" 2>/dev/null || echo 0)"
+  fi
+  echo "$epoch"
+}
+
+epoch_to_date() {
+  local epoch="$1"
+  date -d "@$epoch" '+%Y-%m-%d' 2>/dev/null || date -r "$epoch" '+%Y-%m-%d' 2>/dev/null || date '+%Y-%m-%d'
+}
+
+rebuild_index_posts() {
+  local epoch html_file title post_date escaped_title
+  local block=""
+  # Unit separator (0x1F) instead of "|": a post title containing a literal
+  # pipe would otherwise overflow into the post_date field on read.
+  local sep=$'\x1f'
+
+  while IFS="$sep" read -r epoch html_file title post_date; do
+    escaped_title="$(printf '%s' "$title" | html_escape)"
+    block+="            <a class=\"post\" href=\"$html_file\">"$'\n'
+    block+="                <h2 class=\"post-title\">$escaped_title</h2>"$'\n'
+    block+="                <p class=\"post-date\">$post_date</p>"$'\n'
+    block+="            </a>"$'\n'
+    block+=$'\n'
+  done < <(
+    shopt -s nullglob
+    for md_file in "$MARKDOWN_DIR"/*.md; do
+      base_name="$(basename "$md_file" .md)"
+      html_file="$base_name.html"
+      if [[ "$html_file" == "index.html" ]]; then
+        continue
+      fi
+      title_fallback="$(slug_to_title "$base_name")"
+      title="$(extract_title "$md_file" "$title_fallback")"
+      epoch="$(md_epoch "$md_file")"
+      post_date="$(epoch_to_date "$epoch")"
+      printf '%s%s%s%s%s%s%s\n' "$epoch" "$sep" "$html_file" "$sep" "$title" "$sep" "$post_date"
+    done | sort -t "$sep" -k1,1nr
+  )
+
+  awk -v block="$block" '
+    BEGIN {
+      in_posts = 0
+      skip_post = 0
+      inserted = 0
+    }
+    {
+      if ($0 ~ /<a class="post"/) {
+        skip_post = 1
+      }
+
+      if (skip_post) {
+        if ($0 ~ /<\/a>/) {
+          skip_post = 0
+        }
+        next
+      }
+
+      if (!inserted && index($0, "<div class=\"posts\">")) {
+        print
+        printf "%s", block
+        inserted = 1
+        in_posts = 1
+        next
+      }
+
+      if (in_posts) {
+        if (index($0, "</div>")) {
+          print
+          in_posts = 0
+        }
+        next
+      }
+
+      print
+    }
+  ' "$INDEX_FILE" > "$INDEX_FILE.tmp"
+
+  mv "$INDEX_FILE.tmp" "$INDEX_FILE"
+}
+
+write_post_css() {
+  cat > "$POST_CSS_FILE" <<'EOF'
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: #1f2328;
+  background:
+    radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--c5) 25%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--c1) 20%, white), color-mix(in srgb, var(--c2) 25%, white));
+  padding: 2rem 1rem;
+}
+.page {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--c1) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--c4) 35%, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 16px 32px color-mix(in srgb, var(--c5) 20%, transparent);
+  padding: 2rem;
+}
+h1, h2, h3 {
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--c5) 80%, #000000);
+}
+a {
+  color: color-mix(in srgb, var(--c4) 85%, #000000);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+.page img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--c3) 40%, #ffffff);
+  margin: 2rem 0;
+}
+pre, code {
+  background: color-mix(in srgb, var(--c2) 16%, #ffffff);
+  border-radius: 6px;
+}
+pre { padding: 1rem; overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  background: #fff;
+}
+th, td {
+  border: 1px solid color-mix(in srgb, var(--c3) 35%, #ffffff);
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: color-mix(in srgb, var(--c2) 24%, #ffffff);
+  color: color-mix(in srgb, var(--c5) 78%, #000000);
+}
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #333;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+}
+.dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+.back-home {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: inline-block;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c5) 70%, #000000);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--c5) 30%, transparent);
+}
+.back-home:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+@media (max-width: 700px) {
+  .page { padding: 1.2rem; }
+  .back-home {
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.9rem;
+  }
+}
+EOF
+}
+
+write_post_css
+
+new_files=()
+
+shopt -s nullglob
+for md_file in "$MARKDOWN_DIR"/*.md; do
+  base_name="$(basename "$md_file" .md)"
+  output_html="$DOCS_DIR/$base_name.html"
+
+  if [[ -f "$output_html" ]]; then
+    continue
+  fi
+
+  c1="$(rand_color)"
+  c2="$(rand_color)"
+  c3="$(rand_color)"
+  c4="$(rand_color)"
+  c5="$(rand_color)"
+
+  title_fallback="$(slug_to_title "$base_name")"
+  title="$(extract_title "$md_file" "$title_fallback")"
+  escaped_title="$(printf '%s' "$title" | html_escape)"
+  body_html="$(pandoc -f gfm -t html "$md_file" | rewrite_local_img_urls)"
+
+  cat > "$output_html" <<EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>$escaped_title</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: $c1;
+      --c2: $c2;
+      --c3: $c3;
+      --c4: $c4;
+      --c5: $c5;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    $body_html
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:$c1"></span>$c1</span>
+        <span class="swatch"><span class="dot" style="background:$c2"></span>$c2</span>
+        <span class="swatch"><span class="dot" style="background:$c3"></span>$c3</span>
+        <span class="swatch"><span class="dot" style="background:$c4"></span>$c4</span>
+        <span class="swatch"><span class="dot" style="background:$c5"></span>$c5</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+EOF
+
+  new_files+=("$base_name")
+  echo "Generated: $output_html"
+done
+
+if [[ ${#new_files[@]} -eq 0 ]]; then
+  echo "No new markdown files found to generate."
+fi
+
+rebuild_index_posts
+echo "Index rebuilt in reverse date order."
+
+echo "Done."

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to proxy IMAP traffic using Dovecot and Docker</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #2CE026;
+      --c2: #83F1D3;
+      --c3: #0776FE;
+      --c4: #4E58A4;
+      --c5: #38AFC6;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="how-to-proxy-imap-traffic-using-dovecot-and-docker">How to proxy
+IMAP traffic using Dovecot and Docker</h1>
+<p>I am in the process of migrating my self-hosted email server to a new
+virtual private server. I also want to upgrade and test some new
+features, more specifically add oauth2 capabilities with an
+authentication and authorization server. To avoid big mistakes and
+keeping my current backend, I looked into how to proxy IMAP traffic to a
+new mail setup.</p>
+<p>Fortunately, dovecot, has the ability to act as an imap proxy. The
+setup is really easy. I will run everything local on my archlinux
+homepc, so I do not need to expose anything till I am ready. My
+preferred way to run services is via containers and docker compose make
+this really easy.</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/dovecot_proxy_imap.png"
+alt="dovecot imap proxy" /></p>
+<h2 id="dovecot-docker-compose-">dovecot docker compose </h2>
+<p>Let's start with the dovecot docker compose setup.</p>
+<p>docker-compose.yml</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">dovecot</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> dovecot/dovecot:2.4.4</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> dovecot</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> 31143:31143</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./auth.conf:/etc/dovecot/conf.d/auth.conf:ro</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./proxy-users:/etc/dovecot/proxy-users:ro</span></span></code></pre></div>
+<p>Note: You can either use latest tag if you prefer. It is a best
+practice to avoid latest so you always know what is the running version,
+but you can also use <code>dovecot/dovecot:latest</code> if you
+like.</p>
+<p>Run the below command to download the container image:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> pull</span></code></pre></div>
+<h2 id="dovecot-configuration">dovecot configuration</h2>
+<p>Now, let's dive into the configuration files.</p>
+<p><strong>auth.conf</strong></p>
+<pre><code># Tells Dovecot to only load and listen for the IMAP protocol.
+
+# Enable only the IMAP protocol.
+protocols = imap
+
+# Authentication used by the IMAP client.
+auth_mechanisms = plain login
+
+# Required when the IMAP client connects without TLS.
+# Safe only on a private, non-published Docker network.
+auth_allow_cleartext = yes
+
+# Authenticate the local gateway account and return proxy fields.
+passdb passwd-file {
+    passwd_file_path = /etc/dovecot/proxy-users
+}
+
+# Tells Dovecot which Certificate Authorities (CAs) to trust.
+
+# Use ca-certificates to check TLS/SSL
+ssl_client_ca_file = /etc/ssl/certs/ca-certificates.crt
+
+# enforces strict certificate validation
+ssl_client_require_valid_cert = yes
+</code></pre>
+<p>Let's explain everything.</p>
+<p>This is a local instance, so there is no need to be extravagance
+configuration.</p>
+<ul>
+<li>Enable only the IMAP protocol.</li>
+<li>Enable plain login for the imap client e.g. thunderbird.</li>
+<li>Allow clear text password, as we do not have TLS (for now).</li>
+<li>Use a text file for username, password and proxy to the real imap
+mail server.</li>
+<li>Enable TLS/SSL check (our real imap server uses startTLS) and</li>
+<li>Validate the certificate of our real imap server.</li>
+</ul>
+<p>Start the dovecot docker compose service</p>
+<p><code>docker compose -v up</code></p>
+<p>No worries if it fails, the </p>
+<h2 id="username-and-password">Username and Password</h2>
+<p>Now the important thing, how to create a new user and how to proxy to
+the real imap mail server !</p>
+<p>But before that, let's create a new secure password:</p>
+<p><code>docker compose exec dovecot doveadm pw -s ARGON2ID</code></p>
+<p>This is a test password.</p>
+<p>a full example</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> docker compose exec dovecot doveadm pw <span class="at">-s</span> ARGON2ID</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Enter</span> new password: <span class="op">&lt;</span>test<span class="op">&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Retype</span> new password: <span class="op">&lt;</span>test<span class="op">&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">{ARGON2ID}</span><span class="va">$argon2id$v</span><span class="ex">=19</span><span class="va">$m</span><span class="ex">=65536,t=3,p=1</span><span class="va">$I4BtU8w1KdKI6DNxdJ4aNQ$gP</span><span class="ex">+dEXRDp7vD7IBirwHPe3HqXPwKfbDV+nh8qsdBhaE</span></span></code></pre></div>
+<p>It is important to keep the output.</p>
+<p>Next item on the list, to select a new username.</p>
+<p>And I chose: <strong><a
+href="mailto:username@example.org">username@example.org</a></strong>
+🙂 </p>
+<p>For SSL (TCP Port: 993), the proxy settings are:</p>
+<pre><code>host=imap.provider.example
+port=993
+ssl=yes
+destuser=real@example.com
+pass=app-password</code></pre>
+<p>For starttls the proxy settings are:</p>
+<pre><code>host=imap.example.com
+port=143 starttls=yes
+destuser=real@example.com
+pass=REAL_APP_PASSWORD
+proxy_mech=CRAM-MD5</code></pre>
+<p>And I've added the CRAM-MD5 (encrypted password) just for additional
+info.</p>
+<p>Now, let's put everything together </p>
+<p><code>vim proxy-users</code></p>
+<pre><code>{ARGON2ID}$argon2id$v=19$m=65536,t=3,p=1$I4BtU8w1KdKI6DNxdJ4aNQ$gP+dEXRDp7vD7IBirwHPe3HqXPwKfbDV+nh8qsdBhaE::::::proxy=y host=imap.provider.example port=993 ssl=yes destuser=real@example.com pass=app-password</code></pre>
+<p>And make sure you change ownership and permissions before you start
+the container.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> chown 1000:1000 proxy-users</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> chmod 600 proxy-users</span></code></pre></div>
+<p>Let's recreate or stop/start dovecot docker compose and test it</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> down</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> compose <span class="at">-v</span> up <span class="at">-d</span></span></code></pre></div>
+<h2 id="thunderbird">thunderbird</h2>
+<p>finally let's check our mail client</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/dovecot_imap_proxy_thunderbird_1.png"
+alt="dovecot imap proxy thunderbird 1" /></p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/dovecot_imap_proxy_thunderbird2.png"
+alt="dovecot imap proxy thunderbird_2" /></p>
+<p>That's it! Evaggelos</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#2CE026"></span>#2CE026</span>
+        <span class="swatch"><span class="dot" style="background:#83F1D3"></span>#83F1D3</span>
+        <span class="swatch"><span class="dot" style="background:#0776FE"></span>#0776FE</span>
+        <span class="swatch"><span class="dot" style="background:#4E58A4"></span>#4E58A4</span>
+        <span class="swatch"><span class="dot" style="background:#38AFC6"></span>#38AFC6</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

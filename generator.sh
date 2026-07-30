@@ -144,6 +144,7 @@ write_post_css() {
 body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+  font-size: 1.15rem;
   line-height: 1.7;
   color: #1f2328;
   background:

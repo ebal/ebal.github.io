@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My coding agent has a read-only SSH access to my remote server</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #89AFFB;
+      --c2: #686808;
+      --c3: #2E590E;
+      --c4: #A6A554;
+      --c5: #604FC6;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1
+id="my-coding-agent-has-a-read-only-ssh-access-to-my-remote-server">My
+coding agent has a read-only SSH access to my remote server</h1>
+<blockquote>
+<p><strong>Disclaimer</strong>, this blog post is a proof of concept and
+not a security proposal. Change the HOST PATH to a specific
+directory.</p>
+</blockquote>
+<h2 id="prologue">Prologue</h2>
+<p>Coding Agents are a useful tool. They can access remote servers using
+ssh and then run all investigation commands on the destination. They can
+gather information, read and review all files and also make changes. It
+can read your secrets and audit your system. For me it's a tool, how to
+use it it's up to you. I have rebuild my homeassistant into an old
+laptop which has no other secrets than accessing local devices and I can
+create my automations from my agent. It's useful.</p>
+<p>I also want to use agents or subagents to audit remote systems, do
+investigations and produce reports for me to read. But I do not want
+agents to modify the remote system in any way. It should read files,
+look around, and help me understand what is running there — without
+giving it a real login and, more importantly, without letting it change
+anything. No write access, no root access to the actual VPS, and ideally
+no chance of an "oops, deleted a config" or drop a database.</p>
+<h2 id="idea-and-architecture">Idea and architecture</h2>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/dropbear_readonly.png"
+alt="dropbear readonly ssh" /></p>
+<p>What I ended up with is pretty small and perhaps boring, which is
+exactly what I wanted: a tiny <strong>dropbear</strong> SSH server
+running in a <strong>docker</strong> container, with the part of the
+filesystem I want to expose mounted read-only.</p>
+<p>This is how to reproduce it.</p>
+<blockquote>
+<p>Dropbear is an SSH server and client. It is designed as a
+small-footprint alternative to OpenSSH, mostly for embedded systems, but
+it also works nicely for a throwaway, single-purpose SSH endpoint like
+this.</p>
+</blockquote>
+<h2 id="step-1-make-an-ssh-key-just-for-this">Step 1: make an SSH key
+just for this</h2>
+<p>Do not reuse your main SSH key for this. Generate a separate one,
+dedicated for the agent:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh-keygen</span> <span class="at">-t</span> ed25519         <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-f</span> ~/.ssh/dropbear_readonly <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-C</span> <span class="st">&quot;dropbear_readonly&quot;</span>      <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-N</span> <span class="st">&quot;&quot;</span></span></code></pre></div>
+<p>This gives you two files:</p>
+<ul>
+<li><code>dropbear_readonly</code> — keep this private. This is what the
+AI agent (or you) will use to log in.</li>
+<li><code>dropbear_readonly.pub</code> — this one is fine to share. It
+actually goes on the server.</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> ll</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">drwxr-xr-x</span>   <span class="at">-</span> ebal ebal 18 Aug 12:40 ..</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">drwxr-xr-x</span>   <span class="at">-</span> ebal ebal 18 Aug 12:41 .</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">.rw-------</span> 411 ebal ebal 18 Aug 12:41 dropbear_readonly</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">.rw-r--r--</span> 103 ebal ebal 18 Aug 12:41 dropbear_readonly.pub</span></code></pre></div>
+<h2 id="step-2-the-docker-composeyml">Step 2: the
+docker-compose.yml</h2>
+<p>ssh into the remote vps and inside a new service folder, create a
+file called <code>docker-compose.yml</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">ssh</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> alpine:latest</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;${SSH_PORT:-22222}:22&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ${HOST_PATH:-/opt}:/host:ro</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./authorized_keys:/root/.ssh/authorized_keys:ro</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> dropbear-keys:/etc/dropbear</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="fu">    command</span><span class="kw">: </span><span class="ch">&gt;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>      sh -c &quot;</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        apk add --no-cache dropbear bash &amp;&amp;</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        mkdir -p /root/.ssh &amp;&amp;</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>        chmod 700 /root/.ssh &amp;&amp;</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        exec dropbear -F -E -R -s -j -k -p 22</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>      &quot;</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">healthcheck</span><span class="kw">:</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">test</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">&quot;CMD&quot;</span><span class="kw">,</span><span class="at"> </span><span class="st">&quot;pidof&quot;</span><span class="kw">,</span><span class="at"> </span><span class="st">&quot;dropbear&quot;</span><span class="kw">]</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">interval</span><span class="kw">:</span><span class="at"> 30s</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 3s</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">3</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">start_period</span><span class="kw">:</span><span class="at"> 10s</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">dropbear-keys</span><span class="kw">:</span></span></code></pre></div>
+<p>The 2 parts you need to care about the most from a security point of
+view are these:</p>
+<ul>
+<li><p><code>${HOST_PATH:-/opt}:/host:ro</code> — this is the folder
+from the VPS that gets exposed inside the container. The important thing
+is <code>ro</code>: the mount is read-only.</p></li>
+<li><p>Dropbear flags:</p></li>
+</ul>
+<p>-s disables password authentication. -j disables local forwarding,
+including Unix stream forwarding. -k disables remote forwarding.</p>
+<p>The container itself runs as root internally, but <code>/host</code>
+is still mounted read-only.</p>
+<blockquote>
+<p>This is not a security advice.</p>
+<p>Below you will also see an example with <code>/</code> and important
+files like <code>/host/var/run/docker.sock</code> will be exposed!</p>
+</blockquote>
+<h3 id="additional-container-hardening">additional container
+hardening</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">read_only:</span> true</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">security_opt:</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="ex">-</span> no-new-privileges:true</span></code></pre></div>
+<h2 id="step-3-tell-it-which-folder-to-share-and-which-port-to-use">Step
+3: tell it which folder to share, and which port to use</h2>
+<p>I would not leave <code>HOST_PATH</code> at <code>/opt</code> unless
+that's actually what you want to expose.</p>
+<p>Again, it is better to point it at the specific project or directory
+the agent needs to inspect, rather than something broad like your whole
+home directory.</p>
+<p>Create a <code>.env</code> file next to the compose file:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> cat <span class="op">&gt;</span> .env <span class="op">&lt;&lt;&#39;EOF&#39;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="st">SSH_PORT=22222</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="st">HOST_PATH=/home/ebal/projects/myapp</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span></code></pre></div>
+<p>or change the default values directly in the docker compose yaml
+file.</p>
+<h2 id="step-4-add-the-public-ssh-key">Step 4: add the public ssh
+key</h2>
+<p>Copy the <code>.pub</code> file you generated into an
+<code>authorized_keys</code> file in the same folder:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> mv dropbear_readonly.pub authorized_keys</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="ex">renamed</span> <span class="st">&#39;dropbear_readonly.pub&#39;</span> <span class="at">-</span><span class="op">&gt;</span> <span class="st">&#39;authorized_keys&#39;</span></span></code></pre></div>
+<h2 id="step-5-start-dropbear">Step 5: start dropbear</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> docker compose up</span></code></pre></div>
+<p>example output:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> docker compose up</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[+]</span> up 2/2</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a> <span class="ex">✔</span> Network dropbear-ssh_default Created                                                                                                                                    0.4s</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a> <span class="ex">✔</span> Container dropbear-ssh-ssh-1 Created                                                                                                                                    0.3s</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Attaching</span> to ssh-1</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">1/7</span><span class="kw">)</span> <span class="ex">Installing</span> ncurses-terminfo-base <span class="er">(</span><span class="ex">6.6_p20260516-r0</span><span class="kw">)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">2/7</span><span class="kw">)</span> <span class="ex">Installing</span> libncursesw <span class="er">(</span><span class="ex">6.6_p20260516-r0</span><span class="kw">)</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">3/7</span><span class="kw">)</span> <span class="ex">Installing</span> readline <span class="er">(</span><span class="ex">8.3.3-r1</span><span class="kw">)</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">4/7</span><span class="kw">)</span> <span class="ex">Installing</span> bash <span class="er">(</span><span class="ex">5.3.9-r1</span><span class="kw">)</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span>   <span class="ex">Executing</span> bash-5.3.9-r1.post-install</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">5/7</span><span class="kw">)</span> <span class="ex">Installing</span> skalibs-libs <span class="er">(</span><span class="ex">2.15.0.0-r0</span><span class="kw">)</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">6/7</span><span class="kw">)</span> <span class="ex">Installing</span> utmps-libs <span class="er">(</span><span class="ex">0.1.3.3-r0</span><span class="kw">)</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="kw">(</span><span class="ex">7/7</span><span class="kw">)</span> <span class="ex">Installing</span> dropbear <span class="er">(</span><span class="ex">2026.91-r0</span><span class="kw">)</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="ex">Executing</span> busybox-1.37.0-r31.trigger</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="ex">OK:</span> 10.7 MiB in 23 packages</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="ex">[1]</span> Aug 18 09:51:22 Not backgrounding</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="ex">[20]</span> Aug 18 09:51:32 Child connection from 192.168.1.72:56149</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="ex">ssh-1</span>  <span class="kw">|</span> <span class="ex">[20]</span> Aug 18 09:51:34 Pubkey auth succeeded for <span class="st">&#39;root&#39;</span> with ssh-ed25519 key</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="fu">w</span> Enable Watch   d Detach</span></code></pre></div>
+<p>Then check that it actually came up:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> docker compose ps</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">NAME</span>                  STATUS</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">dropbear-readonly-ssh-1</span>  Up 12 seconds <span class="er">(</span><span class="ex">healthy</span><span class="kw">)</span></span></code></pre></div>
+<h2 id="step-6-test-the-login-from-your-laptop">Step 6: test the login
+from your laptop</h2>
+<p>Back on your own machine:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> ssh <span class="at">-i</span> ~/.ssh/dropbear_readonly <span class="at">-p</span> 22222 root@your-vps-ip</span></code></pre></div>
+<p>You should land in a shell. <code>/host</code> is the project folder
+from your VPS, mounted read-only.</p>
+<h3 id="is-it-real-a-readonly-filesystem-">Is it real a readonly
+filesystem ?</h3>
+<p>Let's test it, shall we ?</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">2420d93953fd:~#</span> tail /host/etc/passwd</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">fwupd:x:969:969:Firmware</span> update daemon:/var/lib/fwupd:/usr/bin/nologin</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">passim:x:968:968:Local</span> Caching Server:/usr/share/empty:/usr/bin/nologin</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">alpm:x:967:967:Arch</span> Linux Package Management:/:/usr/bin/nologin</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">beszel:x:1003:1005::/home/beszel:/bin/false</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">cups:x:209:209:cups</span> helper user:/:/usr/bin/nologin</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="ex">ntp:x:87:87:Network</span> Time Protocol:/var/lib/ntp:/bin/false</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ex">minio:x:103:103:Minio</span> Daemon User:/var/lib/minio:/usr/bin/nologin</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ex">pcscd:x:963:963:PC/SC</span> Smart Card Daemon:/:/usr/bin/nologin</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="ex">privoxy:x:42:42:Privoxy:/:/usr/bin/nologin</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="ex">systemd-imds:x:948:948:systemd</span> Instance Metadata:/:/usr/bin/nologin</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="ex">2420d93953fd:~#</span> rm <span class="at">-f</span> /host/etc/passwd</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="ex">rm:</span> can<span class="st">&#39;t remove &#39;</span>/host/etc/passwd<span class="st">&#39;: Read-only file system</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="st">2420d93953fd:~# touch /host/root/file1</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="st">touch: /host/root/file1: Read-only file system</span></span></code></pre></div>
+<p>That <code>Read-only file system</code> error is basically the whole
+point. That's what you want to see.</p>
+<h2 id="step-7-point-the-coding-agent-at-it">Step 7: point the coding
+agent at it</h2>
+<p>Now give the coding agent the same three things you just used
+yourself:</p>
+<ul>
+<li>the host</li>
+<li>the port (<code>22222</code>)</li>
+<li>the private key (<code>dropbear_readonly</code>)</li>
+</ul>
+<p>Depending on the agent, that might be an SSH config entry, or just
+those values entered into some kind of remote filesystem / SSH
+setup.</p>
+<p>Once connected, it can read and list files under <code>/host</code>,
+but it can't modify, delete, or create anything there. If it tries,
+it'll get the same <code>Read-only file system</code> error you saw
+above.</p>
+<p>Or even better, update your <code>.ssh/config</code></p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Host</span> readonly</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Hostname</span> <span class="op">&lt;</span>your-vps-ip<span class="op">&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Port</span> 22222</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">User</span> root</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">IdentityFile</span> ~/.ssh/dropbear_readonly</span></code></pre></div>
+<p>That's it. -Evaggelos</p>
+<h2 id="ps-an-alternative-method">PS. An alternative method</h2>
+<p>There is always a similar and different solution, to run a coding
+agent directly to the destination (remote) server and keep the agent
+only to a specific directory. With this alternative solution we need an
+agent to each remote server.</p>
+<h3 id="opencode-in-remote-server-example">opencode in remote server
+example</h3>
+<p>so here is an example:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">opencode-sandbox</span><span class="kw">:</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">    # Pinned version - avoid &#39;:latest&#39;,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">    # recent builds have had regressions (e.g. TUI hangs)</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> ghcr.io/anomalyco/opencode:1.18.16</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> opencode_agent</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">    # Keep stdin open for the interactive TUI</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">stdin_open</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">    # Allocate a TTY for interactive use</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tty</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">    # Mount local folder into the sandbox</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./sandbox:/workspace</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">    # Set /workspace as the default working directory</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">working_dir</span><span class="kw">:</span><span class="at"> /workspace</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">    # Keep secrets (API keys) out of this file</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">env_file</span><span class="kw">:</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> opencode.env</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> TZ=Europe/Athens</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="co">    # Prevent privilege escalation inside the container</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">security_opt</span><span class="kw">:</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> no-new-privileges:true</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="co">    # Cap memory - adjust to taste</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">mem_limit</span><span class="kw">:</span><span class="at"> 2g</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="co">    # Cap CPU</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">cpus</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span></code></pre></div>
+<p>and the env example file: <strong>opencode.env</strong></p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ANTHROPIC_API_KEY=your_key_here</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># OPENAI_API_KEY=your_key_here</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> docker compose exec <span class="at">-ti</span> opencode-sandbox opencode</span></code></pre></div>
+<p>an example</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/opencode_docker.png"
+alt="opencode docker" /></p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#89AFFB"></span>#89AFFB</span>
+        <span class="swatch"><span class="dot" style="background:#686808"></span>#686808</span>
+        <span class="swatch"><span class="dot" style="background:#2E590E"></span>#2E590E</span>
+        <span class="swatch"><span class="dot" style="background:#A6A554"></span>#A6A554</span>
+        <span class="swatch"><span class="dot" style="background:#604FC6"></span>#604FC6</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Running AI Agents inside a microVM sandbox</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #119551;
+      --c2: #054A85;
+      --c3: #F7A387;
+      --c4: #B413D8;
+      --c5: #7C309C;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1 id="running-ai-agents-inside-a-microvm-sandbox">Running AI Agents
+inside a microVM sandbox</h1>
+<p>I wanted to run an AI coding agent harness in an isolated
+environment. You can find several programs such as Docker containers,
+Kata Containers, Firecracker, smolvm, krunvm, brig.sh, and Microsandbox.
+There are pros and cons to all of them. I wanted something I could run
+locally without much effort and with a simple setup.</p>
+<p>For my ArchLinux system with KVM enabled, I chose <a
+href="https://github.com/superradcompany/microsandbox">Microsandbox</a>,
+a local runtime for microVM which each sandbox runs as a lightweight
+virtual machine with its own Linux kernel, filesystem, and network
+boundary.</p>
+<h2 id="check-kvm-support">Check KVM support</h2>
+<p>First thing, is that we much verify we already have a KVM device
+(virtualization enabled) and our user is indeed on the kvm group!</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="at">-l</span> /dev/kvm             <span class="co"># usually: crw-rw---- root kvm</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">id</span> <span class="va">$USER</span>                   <span class="co"># is &quot;kvm&quot; in the groups?</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> usermod <span class="at">-aG</span> kvm <span class="va">$USER</span> <span class="co"># only if it&#39;s missing</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">id</span> <span class="va">$USER</span>                   <span class="co"># is &quot;kvm&quot; in the groups?</span></span></code></pre></div>
+<h2 id="install-the-linux-binary-files">Install the Linux binary
+files</h2>
+<p>I wanted to avoid the <code>curl &amp;#124; sh</code> approach, so I
+downloaded version <code>v0.7.11</code> and its <code>libkrunfw</code>
+library into my home directory.</p>
+<p>The installation uses one binary and one library from <a
+href="https://github.com/libkrun/libkrunfw">libkrunfw</a>, 2 files
+total!</p>
+<p>To make it simple to copy/paste to your system:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/.microsandbox/<span class="dt">{bin</span><span class="op">,</span><span class="dt">lib}</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">V</span><span class="op">=</span>v0.7.11</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="va">B</span><span class="op">=</span><span class="st">&quot;https://github.com/superradcompany/microsandbox/releases/download/</span><span class="va">$V</span><span class="st">&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-sfL</span> <span class="at">-o</span> ~/.microsandbox/bin/msb <span class="st">&quot;</span><span class="va">$B</span><span class="st">/msb-linux-x86_64&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> 755 ~/.microsandbox/bin/msb</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-sfL</span> <span class="at">-o</span> ~/.microsandbox/lib/libkrunfw.so.5.6.1 <span class="st">&quot;</span><span class="va">$B</span><span class="st">/libkrunfw-linux-x86_64.so&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$HOME</span><span class="st">/.microsandbox/bin:</span><span class="va">$PATH</span><span class="st">&quot;</span></span></code></pre></div>
+<p>I ran the self-update command to check the installation. It reported
+that version <code>v0.7.11</code> was current and linked
+<code>msb</code> and <code>microsandbox</code> in
+<code>~/.local/bin</code>:</p>
+<pre class="text"><code>$ msb self update
+ • Current version: v0.7.11
+ • Latest version: v0.7.11
+ ✓ Already up to date.
+ ✓ Linked              /home/ebal/.local/bin/msb -&gt; /home/ebal/.microsandbox/bin/msb
+ ✓ Linked              /home/ebal/.local/bin/microsandbox -&gt; /home/ebal/.microsandbox/bin/microsandbox</code></pre>
+<h2 id="check-the-host">Check the host</h2>
+<p>I ran <code>msb doctor</code> to check the host. It found the
+required binary and library, CPU virtualization support, and the KVM
+device. It also reported that APICv was disabled by KVM policy:</p>
+<pre class="text"><code>$ msb doctor
+ • Platform            Linux x86_64
+ • Version             v0.7.11
+ • MSB_HOME            /home/ebal/.microsandbox
+ ✓ msb                 /home/ebal/.microsandbox/bin/msb
+ ✓ libkrunfw           /home/ebal/.microsandbox/bin/../lib/libkrunfw.so.5.6.1
+ ✓ Root clone          reflink supported
+ ✓ CPU virt            vmx
+ ✓ KVM device          /dev/kvm
+ ✓ KVM access          read/write
+warn: KVM APICv: disabled by KVM policy
+warn: Intel APICv is disabled by KVM policy
+ → APICv is optional; sandbox correctness and isolation are unaffected
+ → it is a privileged, host-wide KVM setting; stop all KVM guests first
+ → enable for the current boot: sudo modprobe -r kvm_intel &amp;&amp; sudo modprobe kvm_intel enable_apicv=1
+ → verify: cat /sys/module/kvm_intel/parameters/enable_apicv
+ ✓ Host setup is ready.</code></pre>
+<p>APICv is optional. The doctor output says that disabling it does not
+affect sandbox correctness or isolation. Changing this setting affects
+the host and requires stopping all KVM guests first, so I left it
+unchanged.</p>
+<h2 id="macos">MacOS</h2>
+<p>You can also install microsandbox to your macbook, and for this I
+will show the <code>curl &amp;#124; bash</code> approach:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> curl <span class="at">-fsSL</span> https://install.microsandbox.dev <span class="kw">&amp;</span><span class="co">#124; sh</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">Microsandbox</span> Installer</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">info</span> Detected platform: darwin-aarch64</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="ex">info</span> Latest version: v0.7.11</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="ex">info</span> Downloading microsandbox...</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="ex">[#---------------------------------------]</span>   3%  1MB/30MB  microsandbox-darwin-aarch64.tar.gz^R</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="ex">[########################################]</span> 100%  30MB/30MB  microsandbox-darwin-aarch64.tar.gz</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="ex">[########################################]</span> 100%  0MB/0MB  checksums.sha256</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="ex">info</span> Verifying checksum...</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Checksum</span> verified</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="ex">info</span> Extracting...</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Installed</span> msb to /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.microsandbox/bin/msb</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Linked</span> microsandbox <span class="at">-</span><span class="op">&gt;</span> msb in /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.microsandbox/bin/</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Installed</span> libkrunfw to /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.microsandbox/lib/</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Linked</span> /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.local/bin/msb <span class="at">-</span><span class="op">&gt;</span> /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.microsandbox/bin/msb</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Linked</span> /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.local/bin/microsandbox <span class="at">-</span><span class="op">&gt;</span> /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.microsandbox/bin/microsandbox</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  <span class="ex">Note:</span> /Users/<span class="op">&lt;</span>user<span class="op">&gt;</span>/.local/bin is not on your PATH.</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="ex">Add</span> it to your shell profile if you want to run msb directly:</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">&quot;/Users/&lt;user&gt;/.local/bin:</span><span class="va">$PATH</span><span class="st">&quot;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span> <span class="ex">Installation</span> complete! Run <span class="st">&#39;/Users/&lt;user&gt;/.local/bin/msb --help&#39;</span> to get started.</span></code></pre></div>
+<h2 id="start-ubuntu">Start Ubuntu</h2>
+<p>Microsandbox can run OCI images, so it can use docker container
+images. I started an Ubuntu image with <code>msb run ubuntu</code>:</p>
+<pre class="text"><code>$ msb run ubuntu
+
+root@msb-3cd3976f:/# grep VERSION /etc/os-release
+VERSION_ID=&quot;26.04&quot;
+VERSION=&quot;26.04.1 LTS (Resolute Raccoon)&quot;
+VERSION_CODENAME=resolute
+
+root@msb-3cd3976f:/# uname -a
+Linux msb-3cd3976f 6.12.113 #1 SMP Fri Jul 24 13:01:52 WAT 2026 x86_64 GNU/Linux
+
+root@msb-3cd3976f:/# exit
+exit</code></pre>
+<p>The image was available locally after the run:</p>
+<pre class="text"><code>$ msb image ls
+REFERENCE    DIGEST                 SIZE        CREATED
+ubuntu       sha256:157dc3d6e4a3    40.2 MiB    2026-10-30 15:04:28</code></pre>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/msb_ubuntu.png"
+alt="Microsandbox running Ubuntu" /></p>
+<p>and on your macbook:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> msb run ubuntu</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">root@msb-7d63a2f7:/#</span> uname <span class="at">-a</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Linux</span> msb-7d63a2f7 6.12.113 <span class="co">#1 SMP Fri Jul 24 13:01:52 WAT 2026 aarch64 GNU/Linux</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">root@msb-7d63a2f7:/#</span> grep <span class="at">-i</span> ^version /etc/os-release</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION_ID</span><span class="op">=</span><span class="st">&quot;26.04&quot;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION</span><span class="op">=</span><span class="st">&quot;26.04.1 LTS (Resolute Raccoon)&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION_CODENAME</span><span class="op">=</span>resolute</span></code></pre></div>
+<h2 id="running-the-opencode-agent-harness">Running the OpenCode agent
+harness</h2>
+<p>Now the interesting part, can I run a micro isolated virtual machine
+to run my AI coding agent with access only to my program ?</p>
+<p>So, I pulled the latest OpenCode image:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> msb pull ghcr.io/anomalyco/opencode</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a> <span class="ex">✓</span> Pulled              ghcr.io/anomalyco/opencode <span class="er">(</span><span class="ex">13.8s</span><span class="kw">)</span></span></code></pre></div>
+<p>and I checked that the image was available locally:</p>
+<pre class="text"><code>$ msb image ls
+REFERENCE                     DIGEST                 SIZE        CREATED
+ghcr.io/anomalyco/opencode    sha256:c19f5dd52946    86.6 MiB    2026-10-30 15:21:21</code></pre>
+<p>Then I created a small project directory and a Python file for the
+agent to work with:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-pv</span> ~/project_a/</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;print(&quot;Hello World!&quot;)&#39;</span> <span class="op">&gt;</span> ~/project_a/HelloWorld.py</span></code></pre></div>
+<p>I started the OpenCode image with the project directory mounted at
+<code>/workspace</code>. The sandbox has 2 GB of memory as opencode
+needs at least 2G of RAM to work:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">msb</span> run <span class="at">-t</span> <span class="at">--name</span> opencode <span class="at">--replace</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--mount-dir</span> ~/project_a/:/workspace:rw</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">--workdir</span> /workspace <span class="at">--memory</span> 2G</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="ex">ghcr.io/anomalyco/opencode</span></span></code></pre></div>
+<p>it worked as you can see below</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/msb_opencode.png"
+alt="OpenCode running in Microsandbox" /></p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/msb_opencode_python.png"
+alt="OpenCode working with the Python file" /></p>
+<p>That's it ! Evaggelos</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#119551"></span>#119551</span>
+        <span class="swatch"><span class="dot" style="background:#054A85"></span>#054A85</span>
+        <span class="swatch"><span class="dot" style="background:#F7A387"></span>#F7A387</span>
+        <span class="swatch"><span class="dot" style="background:#B413D8"></span>#B413D8</span>
+        <span class="swatch"><span class="dot" style="background:#7C309C"></span>#7C309C</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

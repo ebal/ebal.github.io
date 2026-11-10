@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jellyfin Trailers for movies and TV shows in my Samsung TV</title>
+  <link rel="stylesheet" href="post.css">
+  <style>
+    :root {
+      --c1: #73493D;
+      --c2: #F1A272;
+      --c3: #625CCE;
+      --c4: #37BD20;
+      --c5: #8CD0D8;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-home" href="index.html">Back to all posts</a>
+  <main class="page">
+    <h1
+id="jellyfin-trailers-for-movies-and-tv-shows-in-my-samsung-tv">Jellyfin
+Trailers for movies and TV shows in my Samsung TV</h1>
+<p>I wanted the <strong>Trailer</strong> button in
+<strong>Jellyfin</strong> to actually do something for the movies and
+shows I have at home. Jellyfin can play a trailer file that sits next to
+your media usually there are no such files. In this blog post you can
+find my personal notes on how I got trailers for my movies and series,
+automatically, with Jellyfin running inside Docker.</p>
+<p>There is also another part, the one that took me more time than it
+should to figure out, when trailers worked in the web browser, but in my
+Samsung TV the trailer button tried to start the trailer and then ...
+nothing happened.</p>
+<blockquote>
+<p><strong>JellyTrailers</strong>: Download movie and TV show trailers
+with yt-dlp and place them next to your media.</p>
+</blockquote>
+<h2 id="how-jellyfin-finds-trailers">How Jellyfin finds trailers</h2>
+<p>Jellyfin looks for "local trailer files". The easiest way is a file
+called <code>trailer.mp4</code> inside the movie folder (or inside the
+series folder for TV shows):</p>
+<pre><code>/media/Movies/Stalker (1979)/
+├── Stalker (1979).mkv
+└── trailer.mp4</code></pre>
+<p>If that file exists, the <strong>Trailer</strong> button in Jellyfin
+shows up on the item page. No plugin is needed to play it.</p>
+<p>The JellyTrailers plugin only creates those files. It searches
+YouTube and downloads the trailer with <strong>yt-dlp</strong>.</p>
+<h2 id="step-1---yt-dlp-and-ffmpeg-inside-the-container">Step 1 - yt-dlp
+and ffmpeg inside the container</h2>
+<p>The official <code>jellyfin/jellyfin</code> image does
+<strong>NOT</strong> include <code>yt-dlp</code>. I didn't want to build
+my own image. So I keep two static binaries on the host and mount them
+read-only into the container. One for yt-dlp and one for
+<code>ffmpeg</code> for transcoding.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> mkdir <span class="at">-p</span> services/jellyfin/local-bin</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cd services/jellyfin/local-bin</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">local-bin$</span> curl <span class="at">-sLo</span> yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">local-bin$</span> curl <span class="at">-sL</span> https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz <span class="kw">|</span> <span class="fu">tar</span> xJ <span class="at">--strip-components</span><span class="op">=</span>1 <span class="at">--wildcards</span> <span class="st">&#39;*/ffmpeg&#39;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="ex">local-bin$</span> chmod +x yt-dlp ffmpeg</span></code></pre></div>
+<p>verify</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">local-bin$</span> ./yt-dlp <span class="at">--version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">2026.08.19</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">local-bin$</span> ./ffmpeg <span class="at">-version</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-1</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">ffmpeg</span> version 7.0.2-static https://johnvansickle.com/ffmpeg/  Copyright <span class="er">(</span><span class="ex">c</span><span class="kw">)</span> <span class="ex">2000-2024</span> the FFmpeg developers</span></code></pre></div>
+<p>YouTube gives you video and audio as separate streams. yt-dlp needs
+ffmpeg to join them into one file, that's why we need both.</p>
+<h2 id="step-2---docker-compose">Step 2 - docker compose</h2>
+<p>The important line is the last volume. <code>/usr/local/bin</code> is
+already in the container's <code>PATH</code>, so there is no need to
+change any environment variable.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">jellyfin</span><span class="kw">:</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> jellyfin/jellyfin:latest</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">container_name</span><span class="kw">:</span><span class="at"> jellyfin</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restart</span><span class="kw">:</span><span class="at"> unless-stopped</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">volumes</span><span class="kw">:</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./services/jellyfin/config:/config</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> /jellyfin_cache:/cache</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./media:/media</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">      # yt-dlp + ffmpeg for the JellyTrailers plugin</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ./services/jellyfin/local-bin:/usr/local/bin:ro</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="st">&quot;8096:8096&quot;</span></span></code></pre></div>
+<p>It is best to use a specific version instead of the
+<code>latest</code> tag.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> docker compose up <span class="at">-d</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> docker exec jellyfin yt-dlp <span class="at">--version</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">2026.08.19</span></span></code></pre></div>
+<h2 id="step-3---install-the-plugin">Step 3 - install the plugin</h2>
+<p>In Jellyfin, go to <strong>Dashboard</strong> -&gt;
+<strong>Plugins</strong> -&gt; <strong>Repositories</strong> and add a
+new repository:</p>
+<ul>
+<li>Name: <code>JellyTrailers</code></li>
+<li>URL:
+<code>https://raw.githubusercontent.com/fl4pj4ck/JellyTrailers/main/manifest.json</code></li>
+</ul>
+<p>Then from the <strong>Catalog</strong> install
+<strong>JellyTrailers</strong> and restart Jellyfin.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> docker restart jellyfin</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> grep <span class="st">&#39;Loaded plugin: &quot;JellyTrailers&quot;&#39;</span> services/jellyfin/config/log/log_<span class="pp">*</span>.log <span class="kw">|</span> <span class="fu">tail</span> <span class="at">-1</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[2026-11-05</span> 21:39:20.268 +02:00] [INF] [9] Emby.Server.Implementations.Plugins.PluginManager: Loaded plugin: <span class="st">&quot;JellyTrailers&quot;</span> <span class="st">&quot;1.6.1.0&quot;</span></span></code></pre></div>
+<p>It's important to look at the logs, maybe somethins is missing or
+something is not in the right directory.</p>
+<p>also <code>docker compose logs -f</code> works.</p>
+<h2 id="step-4---configure-the-plugin">Step 4 - configure the
+plugin</h2>
+<p>Open the plugin settings. These are mine:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>yt-dlp path</td>
+<td><code>/usr/local/bin/yt-dlp</code></td>
+</tr>
+<tr class="even">
+<td>Trailer path</td>
+<td><code>trailer.mp4</code></td>
+</tr>
+<tr class="odd">
+<td>Quality</td>
+<td><code>1080p</code></td>
+</tr>
+<tr class="even">
+<td>Max trailers per run</td>
+<td><code>50</code></td>
+</tr>
+<tr class="odd">
+<td>TMDb/OMDb fallback</td>
+<td>enabled</td>
+</tr>
+</tbody>
+</table>
+<p>and the most important one, <strong>yt-dlp options
+(JSON)</strong>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;bestvideo[height&lt;=1080][vcodec^=avc1]+bestaudio[ext=m4a]/best[height&lt;=1080][vcodec^=avc1]/best[height&lt;=1080]/best&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>I will explain below this format string , because I got it wrong
+twice, three times if you count my wife's request to move from 720 to
+1080p for the trailers :D</p>
+<h2 id="step-5---run-it">Step 5 - run it</h2>
+<p>The plugin adds a scheduled task called <strong>Download Trailers
+(JellyTrailers)</strong>. Mine runs every day at 02:00.</p>
+<p>Run it once by hand from <strong>Dashboard</strong> -&gt;
+<strong>Scheduled Tasks</strong>. Then scan your libraries, so Jellyfin
+finds the new files.</p>
+<blockquote>
+<p>[Be aware: ]{.underline}You just got a new movie from your DVD … the
+trailer will not show immediatle as the scheduler runs at 02.00 in the
+morning, but you can run it explicit by hand !</p>
+</blockquote>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> find media <span class="at">-name</span> trailer.mp4 <span class="kw">|</span> <span class="fu">wc</span> <span class="at">-l</span></span></code></pre></div>
+<p>Some trailers will fail, eg. when the YouTube video is gone. That's
+fine, the plugin tries again on the next run.</p>
+<pre><code>WRN Jellyfin.Plugin.JellyTrailers.YtDlpRunner: yt-dlp failed for &quot;Zootopia (2025) trailer&quot;: &quot;ERROR: [youtube] BjkIOU5PhyQ: This video is not available&quot;</code></pre>
+<hr />
+<h2 id="the-wrong-way">The wrong way</h2>
+<p><code>The format string</code> saga !</p>
+<h3 id="wrong-way-number-one">Wrong way number one</h3>
+<p>The plugin's own <code>1080p</code> quality setting becomes something
+like <code>best[height&lt;=1080]</code>. Which means "the best single
+file that already has video AND audio, up to 1080p". YouTube dont always
+offers those, so yt-dlp answers:</p>
+<pre><code>ERROR: Requested format is not available</code></pre>
+<h3 id="wrong-way-number-two">Wrong way number two</h3>
+<p>So I told yt-dlp to download separate streams and join them:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;bestvideo[height&lt;=1080]+bestaudio/best[height&lt;=1080]/best&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Trailers started to download. In the web browser everything worked.
+perfect, I thought.</p>
+<p>Then I sat in front of my Samsung TV (Q60 series, with the
+<strong>Jellyfin for Tizen</strong> app) and clicked the trailer button.
+The player tried to start, and then nothing happened. No video, no
+sound. Had to restart my TV the first time</p>
+<p>Jellyfin's log said playback had started:</p>
+<pre><code>[INF] SessionManager: User &quot;username&quot; started playback of &quot;Trailer&quot; (&quot;Jellyfin for Tizen&quot; &quot;0.1.0 ...&quot;)</code></pre>
+<p>but there was no FFmpeg transcode log for that moment. So Jellyfin
+sent the file as it is (direct play), and the TV could not play it.</p>
+<p>Let's see what yt-dlp actually downloaded:</p>
+<pre><code>    209 av1 opus
+      8 h264 opus
+      3 vp9 opus
+      2 h264 aac</code></pre>
+<p>If you know, you know.</p>
+<p>On YouTube today "bestvideo" means <strong>AV1</strong> and
+"bestaudio" means <strong>Opus</strong>. Both are good codecs and
+browsers play them fine.</p>
+<p>My TV does not understand them, at least not inside an mp4 file.
+Jellyfin did not convert them for the TV either.</p>
+<h3 id="the-correct-way---finally">The correct way - finally!</h3>
+<p>Ask YouTube for <strong>H.264</strong> (<code>avc1</code>) video and
+<strong>AAC</strong> (<code>m4a</code>) audio. Almost every TV, phone
+and browser can play that:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;bestvideo[height&lt;=1080][vcodec^=avc1]+bestaudio[ext=m4a]/best[height&lt;=1080][vcodec^=avc1]/best[height&lt;=1080]/best&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p><code>avc1</code> + <code>mp4a</code> at 1080p. YouTube still offers
+H.264 up to 1080p, so for a trailer on the TV we lose nothing. Above
+1080p YouTube only has VP9 and AV1, and we are back to the same
+problem.</p>
+<h2 id="fixing-the-trailers-i-already-had">Fixing the trailers I already
+had</h2>
+<p>New trailers are fine now, but I already had a few files in AV1/Opus.
+I did not want to download everything again (some YouTube links are
+already dead). So I converted them with the ffmpeg that comes inside the
+Jellyfin container.</p>
+<p>My server is an old Intel GPU (no, not really), so I used VAAPI to
+encode H.264. My GPU (again not really) can't decode AV1, so ffmpeg does
+that part on the CPU. It is slow, about 30 seconds per trailer, but it
+works.</p>
+<blockquote>
+<p>My CPU is an Intel Core i7-2600 (Sandy Bridge, 2011, 4 cores / 8
+threads), and it has Intel HD Graphics 2000 built in (PCI ID
+8086:0102).</p>
+</blockquote>
+<p>a 15y old CPU !</p>
+<p>Back to the TV, I press the trailer button, and this time the trailer
+plays ! and happy wife too :)</p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/jellytrailers1.jpg"
+alt="jellytrailers 01" /></p>
+<p><img
+src="https://raw.githubusercontent.com/ebal/ebal.github.io/main/img/jellytrailers2.jpg"
+alt="jellytrailers 02" /></p>
+<p>That's it ! -Evaggelos</p>
+    <hr>
+    <section aria-label="Generated color palette">
+      <h3>Generated Palette</h3>
+      <div class="palette">
+        <span class="swatch"><span class="dot" style="background:#73493D"></span>#73493D</span>
+        <span class="swatch"><span class="dot" style="background:#F1A272"></span>#F1A272</span>
+        <span class="swatch"><span class="dot" style="background:#625CCE"></span>#625CCE</span>
+        <span class="swatch"><span class="dot" style="background:#37BD20"></span>#37BD20</span>
+        <span class="swatch"><span class="dot" style="background:#8CD0D8"></span>#8CD0D8</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
